@@ -1,7 +1,7 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('node:path');
-const { ChatOllama } = require('langchain/chat_models/ollama');
-const { SystemMessage } = require('langchain/schema');
+const { ChatOllama } = require('@langchain/ollama');
+const { SystemMessage } = require('@langchain/core/messages');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
