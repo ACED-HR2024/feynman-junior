@@ -1,0 +1,29 @@
+/* Initial state when input is collapsed */
+.input-collapsed {
+    width: 30px;  /* Minimum width when collapsed */
+    transition: width 0.3s ease;
+}
+
+/* Expanded state when focused */
+.input-expanded {
+    width: 100%; /* Full width when focused */
+    transition: width 0.3s ease;
+}
+
+.chat-input {
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.3s ease;
+}
+
+.chat-input:focus {
+    border-color: #3b82f6;
+}
+
+.input-wrapper {
+    width: 100%;
+    max-width: 400px;
+}

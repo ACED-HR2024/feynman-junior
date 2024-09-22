@@ -1,10 +1,26 @@
 import React, { useState } from 'react';
+import './FeynmanJunior.css';  // Assuming the CSS for chat-input is defined there
 
 const FeynmanJunior = () => {
     const [audience, setAudience] = useState('');
     const [isTransitioning, setIsTransitioning] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const [chatInput, setChatInput] = useState('');
+    const [isChatFocused, setIsChatFocused] = useState(false);
+
+    const handleChatChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setChatInput(e.target.value);
+    };
+
+    const handleChatFocus = () => {
+        setIsChatFocused(true);
+    };
+
+    const handleChatBlur = () => {
+        if (chatInput === '') {
+            setIsChatFocused(false); // Collapse only if input is empty
+        }
+    };
 
     const handleAudienceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setAudience(e.target.value);
@@ -18,17 +34,11 @@ const FeynmanJunior = () => {
         setIsRecording(!isRecording);
     };
 
-    const handleChatChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setChatInput(e.target.value);
-    };
-
     const handleChatSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         console.log('Submitted message:', chatInput);
         setChatInput('');
     };
-
-    console.log('Rendering FeynmanJunior', { audience, isTransitioning, isRecording });
 
     return (
         <div className="feynman-junior-container" style={{ height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', backgroundColor: '#f0f0f0' }}>
@@ -70,22 +80,18 @@ const FeynmanJunior = () => {
                         {isRecording ? 'Stop' : 'Record'}
                     </button>
                     <form onSubmit={handleChatSubmit} style={{ marginTop: '32px', width: '100%', maxWidth: '400px' }}>
-                        <input
-                            type="text"
-                            value={chatInput}
-                            onChange={handleChatChange}
-                            style={{
-                                width: '100%',
-                                padding: '12px',
-                                fontSize: '18px',
-                                color: '#374151',
-                                border: '1px solid #d1d5db',
-                                borderRadius: '8px',
-                                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'
-                            }}
-                            placeholder="Type your message..."
-                            aria-label="Chat input"
-                        />
+                        <div className="input-wrapper">
+                            <input
+                                type="text"
+                                value={chatInput}
+                                onChange={handleChatChange}
+                                onFocus={handleChatFocus}
+                                onBlur={handleChatBlur}
+                                className={`chat-input ${isChatFocused ? 'input-expanded' : 'input-collapsed'}`}
+                                placeholder="Type your message..."
+                                aria-describedby="chatInput"
+                            />
+                        </div>
                     </form>
                 </div>
             </div>
