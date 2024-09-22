@@ -19,18 +19,10 @@ function App() {
   };
 
   return (
-    <div>
-      <h1>Simple Form</h1>
-      <form onSubmit={handleSubmit}>
-        <textarea
-          value={inputValue}
-          onChange={handleInputChange} // Corrected type for textarea event handler
-          className="textarea"
-          placeholder="Enter text here"
-        />
-        <button onClick = {handleClickFunction}>Submit</button>
-      </form>
-    </div>
+        <div className="app-container">
+            <h1>Feynman Junior App</h1>
+            <FeynmanJunior />
+        </div>
   );
 }
 
