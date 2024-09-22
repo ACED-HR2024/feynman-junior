@@ -1,26 +1,40 @@
-import React, { useState } from 'react';
-import AudienceSelect from "./AudienceSelect";
+import React, {useEffect, useRef, useState} from 'react';
+import './LLMInput.css'; // Make sure to import the CSS file
 
 interface LLMInputProps {
     onSubmit: (message: string) => void;
 }
 
-const LLMInput: React.FC<LLMInputProps> = ({ onSubmit }) => {
+const LLMInput: React.FC<LLMInputProps> = ({onSubmit}) => {
     const [isRecording, setIsRecording] = useState(false);
     const [chatInput, setChatInput] = useState('');
-    const [isChatFocused, setIsChatFocused] = useState(false);
+    const [isInputExpanded, setIsInputExpanded] = useState(false);
+    const inputRef = useRef<HTMLTextAreaElement>(null);
+    const inputWrapperRef = useRef<HTMLDivElement>(null);
 
     const handleChatChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setChatInput(e.target.value);
     };
 
-    const handleChatFocus = () => {
-        setIsChatFocused(true);
+    const handleInputFocus = () => {
+        if (inputWrapperRef.current) {
+            inputWrapperRef.current.classList.add('expanding-width');
+            setTimeout(() => {
+                if (inputWrapperRef.current) {
+                    inputWrapperRef.current.classList.remove('expanding-width');
+                    inputWrapperRef.current.classList.add('expanding-height');
+                }
+            }, 300);
+        }
+        setIsInputExpanded(true);
     };
 
-    const handleChatBlur = () => {
+    const handleInputBlur = () => {
         if (chatInput === '') {
-            setIsChatFocused(false);
+            setIsInputExpanded(false);
+            if (inputWrapperRef.current) {
+                inputWrapperRef.current.classList.remove('expanding-height');
+            }
         }
     };
 
@@ -34,35 +48,40 @@ const LLMInput: React.FC<LLMInputProps> = ({ onSubmit }) => {
         setChatInput('');
     };
 
+    useEffect(() => {
+        if (isInputExpanded && inputRef.current) {
+            inputRef.current.style.height = 'auto';
+            inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
+        }
+    }, [chatInput, isInputExpanded]);
+
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div className="input-container">
             <button
-                style={{
-                    padding: '24px',
-                    borderRadius: '50%',
-                    backgroundColor: isRecording ? '#ef4444' : '#3b82f6',
-                    color: 'white',
-                    border: 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-                }}
+                className={`microphone-button ${isRecording ? 'active' : ''}`}
                 onClick={toggleRecording}
                 aria-label={isRecording ? 'Stop recording' : 'Start recording'}
             >
-                {isRecording ? 'Stop' : 'Record'}
+                🎤
             </button>
-            <form onSubmit={handleChatSubmit} style={{ marginTop: '32px', width: '100%', maxWidth: '400px' }}>
-                <div className="input-wrapper">
-          <textarea
-              value={chatInput}
-              onChange={handleChatChange}
-              onFocus={handleChatFocus}
-              onBlur={handleChatBlur}
-              className={`chat-input ${isChatFocused ? 'input-expanded' : 'input-collapsed'}`}
-              placeholder="Type your message..."
-              aria-describedby="chatInput"
-          />
+            <form onSubmit={handleChatSubmit}>
+                <div
+                    className={`input-wrapper ${isInputExpanded ? 'input-expanded' : ''}`}
+                    ref={inputWrapperRef}
+                >
+                    <textarea
+                        ref={inputRef}
+                        value={chatInput}
+                        onChange={handleChatChange}
+                        onFocus={handleInputFocus}
+                        onBlur={handleInputBlur}
+                        className="chat-input"
+                        placeholder="Type your message..."
+                        rows={isInputExpanded ? 3 : 1}
+                    />
+                    <button type="submit" className="submit-button" aria-label="Submit">
+                        ↑
+                    </button>
                 </div>
             </form>
         </div>
