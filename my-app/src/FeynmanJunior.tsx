@@ -8,7 +8,7 @@ const FeynmanJunior = () => {
     const [chatInput, setChatInput] = useState('');
     const [isChatFocused, setIsChatFocused] = useState(false);
 
-    const handleChatChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleChatChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setChatInput(e.target.value);
     };
 
@@ -81,8 +81,7 @@ const FeynmanJunior = () => {
                     </button>
                     <form onSubmit={handleChatSubmit} style={{ marginTop: '32px', width: '100%', maxWidth: '400px' }}>
                         <div className="input-wrapper">
-                            <input
-                                type="text"
+                            <textarea
                                 value={chatInput}
                                 onChange={handleChatChange}
                                 onFocus={handleChatFocus}
