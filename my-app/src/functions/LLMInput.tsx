@@ -74,7 +74,8 @@ const LLMInput: React.FC<LLMInputProps> = ({ onSubmit }) => {
                 onClick={toggleRecording}
                 aria-label={isListening ? 'Stop recording' : 'Start recording'}
             >
-                {isListening ? "Stop Listening" : "Speak"}
+                {/*{isListening ? "Stop Listening" : "Speak"}*/}
+                🎤
             </button>
             <form onSubmit={handleChatSubmit}>
                 <div
