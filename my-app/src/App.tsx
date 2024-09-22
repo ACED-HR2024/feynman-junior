@@ -21,9 +21,7 @@ function App() {
 
     useEffect(() => {
         if (audience) {
-            const primePrompt = `You are about to present a topic to ${audience}. 
-        After presenting you will ask 7 questions about the presentation topic.
-        These questions must come from a typical ${audience}.`;
+            const primePrompt = `You are ${audience}. After reading the presentation you will ask 4 questions about the presentation topic as a ${audience}. The younger, the more inquisitive your questions.`;
 
             ollamaService.primeOllama(primePrompt)
                 .then(() => {
