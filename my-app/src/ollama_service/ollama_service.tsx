@@ -1,4 +1,4 @@
-import { HumanMessage, SystemMessage } from "@langchain/core/messages";
+import { BaseMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { ChatOllama } from "@langchain/ollama";
 
 
@@ -37,3 +37,5 @@ class OllamaService {
 
 }
 
+
+export const ollamaService = new OllamaService();
