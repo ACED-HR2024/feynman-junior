@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './App.css';
 import AudienceSelect from './functions/AudienceSelect';
 import LLMInput from './functions/LLMInput';
+import { ollamaService } from './ollama_service/ollama_service';
 
 function App() {
+
     const [audience, setAudience] = useState('');
     const [isTransitioning, setIsTransitioning] = useState(false);
     const [inputValue, setInputValue] = useState<string>('');
@@ -16,16 +18,35 @@ function App() {
         }
     };
 
-    const handleLLMSubmit = (message: string) => {
-        console.log('Submitted message:', message);
-        setInputValue(message);
-        // Here you would typically send the message to your LLM
+    useEffect(() => {
+      if (audience) {
+        const primePrompt = `You are about to present a topic to ${audience}. 
+        After presenting you will ask 7 questions about the presentation topic.
+        These questions must come from a typical ${audience}.`
+        ollamaService.primeOllama(primePrompt)
+          .then(() => console.log(`Ollama primed with audience ${audience}`))
+          .catch((error) => console.error(`Error priming Ollama:`, error))
+      }
+    }, [audience])
+
+    const handleLLMSubmit = async (message: string) => {
+      try {
+        console.log('Submitted message', message)
+        setInputValue(message)
+        const response = ollamaService.sendMessage(message)
+        console.log('LLM Response', response)
+      } catch (error) {
+        console.error('Error from LLM', error)
+      }
+        // console.log('Submitted message:', message);
+        // setInputValue(message);
+        // // Here you would typically send the message to your LLM
     };
 
-    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        console.log(inputValue);
-    };
+    // const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    //     event.preventDefault();
+    //     console.log(inputValue);
+    // };
 
     return (
         <div className="app-container">
