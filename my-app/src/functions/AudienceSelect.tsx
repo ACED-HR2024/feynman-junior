@@ -15,6 +15,7 @@ const AudienceSelect: React.FC<AudienceSelectProps> = ({audience, onAudienceChan
     return (
         <div className="audience-select-container">
             <h1 className="title">Feynman Junior</h1>
+            <p className="description">I'm Feynman Junior! A tool tailored to help you solidify your knowledge through the <a href="https://en.wikipedia.org/wiki/Learning_by_teaching">Feynman Technique</a>. Please select the audience that your presentation is catered towards.</p>
             <p className="subtitle">Select your audience:</p>
             <select
                 className="audience-dropdown"
