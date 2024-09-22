@@ -1,30 +1,51 @@
-import './App.css';
 import React, { useState } from 'react';
-import './App.css'; // Import the CSS file
-import { handleClickFunction} from './functions/saveFile'
-import FeynmanJunior from "./FeynmanJunior";
+import './App.css';
+import AudienceSelect from './functions/AudienceSelect';
+import LLMInput from './functions/LLMInput';
 
 function App() {
-  // State to hold the value of the textarea
-  const [inputValue, setInputValue] = useState<string>('');
+    const [audience, setAudience] = useState('');
+    const [isTransitioning, setIsTransitioning] = useState(false);
+    const [inputValue, setInputValue] = useState<string>('');
 
-  // Handler for when the form is submitted
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault(); // Prevent page reload
-    console.log(inputValue); // Log the input value to the console
-  };
+    const handleAudienceChange = (newAudience: string) => {
+        setAudience(newAudience);
+        if (newAudience) {
+            setIsTransitioning(true);
+            setTimeout(() => setIsTransitioning(false), 500);
+        }
+    };
 
-  // Handler for when the textarea changes
-  const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputValue(event.target.value); // Update the input value
-  };
+    const handleLLMSubmit = (message: string) => {
+        console.log('Submitted message:', message);
+        setInputValue(message);
+        // Here you would typically send the message to your LLM
+    };
 
-  return (
+    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        console.log(inputValue);
+    };
+
+    return (
         <div className="app-container">
             <h1>Feynman Junior App</h1>
-            <FeynmanJunior/>
+            <div style={{
+                transition: 'all 0.5s ease-in-out',
+                opacity: isTransitioning || audience ? 0 : 1,
+                transform: `translateY(${isTransitioning || audience ? '-100%' : '0'})`
+            }}>
+                <AudienceSelect audience={audience} onAudienceChange={handleAudienceChange} />
+            </div>
+            <div style={{
+                transition: 'all 0.5s ease-in-out',
+                opacity: isTransitioning || !audience ? 0 : 1,
+                transform: `translateY(${isTransitioning || !audience ? '100%' : '0'})`
+            }}>
+                <LLMInput onSubmit={handleLLMSubmit} />
+            </div>
         </div>
-  );
+    );
 }
 
 export default App;
