@@ -1,10 +1,10 @@
 import React from 'react';
+import './AudienceSelect.css';
 
 interface AudienceSelectProps {
     audience: string;
     onAudienceChange: (audience: string) => void;
     disabled?: boolean;
-
 }
 
 const AudienceSelect: React.FC<AudienceSelectProps> = ({audience, onAudienceChange, disabled}) => {
@@ -13,18 +13,12 @@ const AudienceSelect: React.FC<AudienceSelectProps> = ({audience, onAudienceChan
     };
 
     return (
-        <div style={{transition: 'all 0.5s ease-in-out'}}>
-            <h1 style={{fontSize: '24px', color: '#3b82f6', marginBottom: '16px'}}>Feynman Junior</h1>
-            <p style={{fontSize: '18px', color: '#4b5563', marginBottom: '16px'}}>Select your audience:</p>
+        <div className="audience-select-container">
+            <h1 className="title">Feynman Junior</h1>
+            <p className="description">I'm Feynman Junior! A tool tailored to help you solidify your knowledge through the <a href="https://en.wikipedia.org/wiki/Learning_by_teaching">Feynman Technique</a>. Please select the audience that your presentation is catered towards.</p>
+            <p className="subtitle">Select your audience:</p>
             <select
-                style={{
-                    width: '256px',
-                    padding: '8px',
-                    fontSize: '18px',
-                    color: '#374151',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px'
-                }}
+                className="audience-dropdown"
                 value={audience}
                 onChange={handleAudienceChange}
                 aria-label="Select audience"
@@ -42,5 +36,4 @@ const AudienceSelect: React.FC<AudienceSelectProps> = ({audience, onAudienceChan
     );
 };
 
-// Default export
 export default AudienceSelect;
