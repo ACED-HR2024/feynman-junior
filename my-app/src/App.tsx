@@ -29,13 +29,12 @@ function App() {
 
     return (
         <div className="app-container">
-            <h1>Feynman Junior App</h1>
             <div style={{
                 transition: 'all 0.5s ease-in-out',
                 opacity: isTransitioning || audience ? 0 : 1,
                 transform: `translateY(${isTransitioning || audience ? '-100%' : '0'})`
             }}>
-                <AudienceSelect audience={audience} onAudienceChange={handleAudienceChange} />
+                <AudienceSelect audience={audience} onAudienceChange={handleAudienceChange} disabled={!!audience}/>
             </div>
             <div style={{
                 transition: 'all 0.5s ease-in-out',
