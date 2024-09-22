@@ -2,6 +2,7 @@ import './App.css';
 import React, { useState } from 'react';
 import './App.css'; // Import the CSS file
 import { handleClickFunction} from './functions/saveFile'
+import FeynmanJunior from "./FeynmanJunior";
 
 function App() {
   // State to hold the value of the textarea
@@ -21,7 +22,7 @@ function App() {
   return (
         <div className="app-container">
             <h1>Feynman Junior App</h1>
-            <FeynmanJunior />
+            <FeynmanJunior/>
         </div>
   );
 }
