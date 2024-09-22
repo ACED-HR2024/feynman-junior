@@ -29,15 +29,18 @@ function App() {
       }
     }, [audience])
 
-    const handleLLMSubmit = async (message: string) => {
-      try {
-        console.log('Submitted message', message)
-        setInputValue(message)
-        const response = ollamaService.sendMessage(message)
-        console.log('LLM Response', response)
-      } catch (error) {
-        console.error('Error from LLM', error)
-      }
+    // TEMPORARY
+    // const handleLLMSubmit = async (message: string) => {
+    //   try {
+    //     console.log('Submitted message', message)
+    //     setInputValue(message)
+    //     const response = ollamaService.sendMessage(message)
+    //     console.log('LLM Response', response)
+    //   } catch (error) {
+    //     console.error('Error from LLM', error)
+    //   }
+
+
         // console.log('Submitted message:', message);
         // setInputValue(message);
         // // Here you would typically send the message to your LLM
