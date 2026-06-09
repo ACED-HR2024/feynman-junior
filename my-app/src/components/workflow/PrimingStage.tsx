@@ -12,8 +12,11 @@ const PrimingStage: React.FC<PrimingStageProps> = ({ audience, label = 'Preparin
         <h2>{label}</h2>
         <p>
             {audience
-                ? `Getting ${audience.label.toLowerCase()} ready to ask useful questions.`
-                : 'Checking the learning session setup.'}
+                ? `Getting ${audience.label.toLowerCase()} ready so the next step has audience-specific questions.`
+                : 'Checking the local learning session setup.'}
+        </p>
+        <p className="helper-note">
+            This usually takes a moment while the local model prepares the response.
         </p>
     </section>
 );

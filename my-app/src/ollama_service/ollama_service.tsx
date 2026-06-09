@@ -8,8 +8,8 @@ class OllamaService {
     constructor() {
         this.ollama = new ChatOllama({
             baseUrl: 'http://localhost:11434',
-            model: 'phi3',
-            temperature: 1,
+            model: 'phi4-mini',
+            temperature: 0.3,
             cache: true,
         });
     }

@@ -3,6 +3,7 @@ import { LearningSession } from '../../types/session';
 
 interface FeedbackStageProps {
     session: LearningSession;
+    onRevise: () => void;
     onReset: () => void;
     onChangeAudience: () => void;
 }
@@ -20,7 +21,12 @@ const FeedbackList: React.FC<{ title: string; items: string[] }> = ({ title, ite
     </section>
 );
 
-const FeedbackStage: React.FC<FeedbackStageProps> = ({ session, onReset, onChangeAudience }) => {
+const FeedbackStage: React.FC<FeedbackStageProps> = ({
+    session,
+    onRevise,
+    onReset,
+    onChangeAudience,
+}) => {
     if (!session.feedback) {
         return null;
     }
@@ -29,7 +35,7 @@ const FeedbackStage: React.FC<FeedbackStageProps> = ({ session, onReset, onChang
         <section className="stage-card wide">
             <div className="stage-header">
                 <div>
-                    <span className="eyebrow">Session Summary</span>
+                    <span className="eyebrow">Step 5 · Feedback</span>
                     <h1>{session.topic || 'Feynman Practice Session'}</h1>
                     <p>{session.feedback.clarity}</p>
                 </div>
@@ -37,10 +43,47 @@ const FeedbackStage: React.FC<FeedbackStageProps> = ({ session, onReset, onChang
                     <button type="button" className="secondary-button" onClick={onChangeAudience}>
                         Change Audience
                     </button>
-                    <button type="button" className="primary-button" onClick={onReset}>
-                        Start Over
+                    <button type="button" className="primary-button" onClick={onRevise}>
+                        Revise Explanation
+                    </button>
+                    <button type="button" className="secondary-button" onClick={onReset}>
+                        Start New Session
                     </button>
                 </div>
+            </div>
+
+            <div className="reflection-panel">
+                <div>
+                    <span className="panel-label">Original explanation</span>
+                    <p>{session.explanation}</p>
+                </div>
+                <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => {
+                        const markdown = [
+                            `# ${session.topic || 'Feynman Practice Session'}`,
+                            '',
+                            `Audience: ${session.audience?.label || 'Not selected'}`,
+                            '',
+                            '## Overall clarity',
+                            session.feedback?.clarity || '',
+                            '',
+                            '## Strengths',
+                            ...(session.feedback?.strengths.map((item) => `- ${item}`) || []),
+                            '',
+                            '## Missing concepts',
+                            ...(session.feedback?.missingConcepts.map((item) => `- ${item}`) || []),
+                            '',
+                            '## Simplification tips',
+                            ...(session.feedback?.simplificationTips.map((item) => `- ${item}`) || []),
+                        ].join('\n');
+
+                        void navigator.clipboard?.writeText(markdown);
+                    }}
+                >
+                    Copy Feedback
+                </button>
             </div>
 
             <div className="feedback-grid">

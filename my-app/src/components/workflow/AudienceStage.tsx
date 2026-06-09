@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AUDIENCES } from '../../services/prompts';
 import { AudienceId } from '../../types/session';
 
@@ -7,36 +7,58 @@ interface AudienceStageProps {
     disabled?: boolean;
 }
 
-const AudienceStage: React.FC<AudienceStageProps> = ({ onSelectAudience, disabled = false }) => (
-    <section className="stage-card">
-        <h1>Feynman Junior</h1>
-        <p>
-            Practice the Feynman Technique by teaching a concept to a specific
-            audience. Choose who you want to explain your idea to first.
-        </p>
+const AudienceStage: React.FC<AudienceStageProps> = ({ onSelectAudience, disabled = false }) => {
+    const [selectedAudienceId, setSelectedAudienceId] = useState<AudienceId | null>(null);
 
-        <label className="field-label" htmlFor="audience">
-            Select your audience
-        </label>
-        <select
-            id="audience"
-            className="text-input"
-            defaultValue=""
-            disabled={disabled}
-            onChange={(event) => {
-                if (event.target.value) {
-                    onSelectAudience(event.target.value as AudienceId);
-                }
-            }}
-        >
-            <option value="">Select an audience</option>
-            {AUDIENCES.map((audience) => (
-                <option key={audience.id} value={audience.id}>
-                    {audience.label}
-                </option>
-            ))}
-        </select>
-    </section>
-);
+    return (
+        <section className="stage-card">
+            <div className="stage-intro">
+                <span className="eyebrow">Step 1 · Audience</span>
+                <h1>Choose who you are teaching.</h1>
+                <p>
+                    Pick the mental model first. Feynman Junior will use that audience to
+                    generate questions that expose unclear parts of your explanation.
+                </p>
+            </div>
+
+            <div className="audience-grid" role="radiogroup" aria-label="Teaching audience">
+                {AUDIENCES.map((audience) => {
+                    const isSelected = selectedAudienceId === audience.id;
+
+                    return (
+                        <button
+                            type="button"
+                            className={`audience-card ${isSelected ? 'selected' : ''}`}
+                            key={audience.id}
+                            disabled={disabled}
+                            role="radio"
+                            aria-checked={isSelected}
+                            onClick={() => setSelectedAudienceId(audience.id)}
+                        >
+                            <span className="audience-card-title">{audience.label}</span>
+                            <span className="audience-card-description">{audience.description}</span>
+                            <span className="audience-card-example">
+                                Example focus: {audience.promptGuidance}
+                            </span>
+                        </button>
+                    );
+                })}
+            </div>
+
+            <button
+                type="button"
+                className="primary-button"
+                disabled={disabled || !selectedAudienceId}
+                onClick={() => {
+                    if (selectedAudienceId) {
+                        onSelectAudience(selectedAudienceId);
+                    }
+                }}
+            >
+                Start Practice
+            </button>
+        </section>
+    );
+};
 
 export default AudienceStage;

@@ -99,8 +99,8 @@ wraps LangChain's `ChatOllama` behind a typed service boundary.
 Current defaults:
 
 - Base URL: `http://localhost:11434`
-- Model: `phi3`
-- Temperature: `1`
+- Model: `phi4-mini`
+- Temperature: `0.3`
 - Cache: enabled
 
 Defaults are configured in [`my-app/src/config/ollama.ts`](my-app/src/config/ollama.ts)
@@ -128,7 +128,7 @@ Unsupported browsers keep text input available and show a visible fallback.
 
 - Node.js and npm
 - Ollama installed and running locally
-- The `phi3` model available in Ollama
+- The `phi4-mini` model available in Ollama
 - A browser that supports `webkitSpeechRecognition` for microphone input
 
 ### Setup
@@ -150,7 +150,7 @@ npm install
 Install or pull the expected Ollama model:
 
 ```sh
-ollama pull phi3
+ollama pull phi4-mini
 ```
 
 Start Ollama if it is not already running:
@@ -172,8 +172,8 @@ Optional local configuration:
 
 ```sh
 REACT_APP_OLLAMA_BASE_URL=http://localhost:11434
-REACT_APP_OLLAMA_MODEL=phi3
-REACT_APP_OLLAMA_TEMPERATURE=1
+REACT_APP_OLLAMA_MODEL=phi4-mini
+REACT_APP_OLLAMA_TEMPERATURE=0.3
 REACT_APP_OLLAMA_CACHE=true
 ```
 
@@ -220,6 +220,8 @@ Run these from [`my-app`](my-app):
 - Add explicit states for idle, listening, processing, success, and error.
 - Show browser support messaging when speech recognition is unavailable.
 - Add transcript reset, pause, and language controls.
+- Add a Whisper-backed verbal answer mode so learners respond out loud before
+  receiving feedback.
 
 ### Ollama Reliability
 

@@ -37,10 +37,10 @@ moves away from Create React App.
 ## Local Ollama Requirement
 
 The app expects Ollama to be running at `http://localhost:11434` with the
-`phi3` model available by default:
+`phi4-mini` model available by default:
 
 ```sh
-ollama pull phi3
+ollama pull phi4-mini
 ollama serve
 ```
 
@@ -48,8 +48,8 @@ These defaults can be overridden with Create React App environment variables:
 
 ```sh
 REACT_APP_OLLAMA_BASE_URL=http://localhost:11434
-REACT_APP_OLLAMA_MODEL=phi3
-REACT_APP_OLLAMA_TEMPERATURE=1
+REACT_APP_OLLAMA_MODEL=phi4-mini
+REACT_APP_OLLAMA_TEMPERATURE=0.3
 REACT_APP_OLLAMA_CACHE=true
 ```
 

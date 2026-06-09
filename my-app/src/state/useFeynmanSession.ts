@@ -64,11 +64,21 @@ export const useFeynmanSession = () => {
     const selectAudience = useCallback(async (audienceId: AudienceId) => {
         const audience = getAudienceById(audienceId);
 
-        setSession({
-            ...initialSession,
-            audience,
-            stage: 'primePersona',
-            isLoading: true,
+        setSession((current) => {
+            const preservedDraft = current.topic || current.explanation
+                ? {
+                    topic: current.topic,
+                    explanation: current.explanation,
+                }
+                : {};
+
+            return {
+                ...initialSession,
+                ...preservedDraft,
+                audience,
+                stage: 'primePersona',
+                isLoading: true,
+            };
         });
 
         try {
@@ -176,15 +186,46 @@ export const useFeynmanSession = () => {
         }));
     }, []);
 
+    const reviseExplanation = useCallback(() => {
+        setSession((current) => ({
+            ...current,
+            stage: 'submitExplanation',
+            error: null,
+        }));
+    }, []);
+
+    const updateAnswerDraft = useCallback((questionId: string, answer: string) => {
+        setSession((current) => {
+            const answersByQuestion = new Map(
+                current.answers.map((item) => [item.questionId, item.answer]),
+            );
+
+            answersByQuestion.set(questionId, answer);
+
+            return {
+                ...current,
+                answers: Array.from(answersByQuestion.entries()).map(([id, draft]) => ({
+                    questionId: id,
+                    answer: draft,
+                })),
+            };
+        });
+    }, []);
+
     const resetSession = useCallback(() => {
         setSession(initialSession);
     }, []);
 
     const changeAudience = useCallback(() => {
-        setSession({
-            ...initialSession,
+        setSession((current) => ({
+            ...current,
             stage: 'selectAudience',
-        });
+            questions: [],
+            answers: [],
+            feedback: null,
+            error: null,
+            isLoading: false,
+        }));
     }, []);
 
     const retry = useCallback(() => {
@@ -207,6 +248,8 @@ export const useFeynmanSession = () => {
         submitExplanation,
         continueToAnswers,
         reviewQuestions,
+        reviseExplanation,
+        updateAnswerDraft,
         submitAnswers,
         resetSession,
         changeAudience,
