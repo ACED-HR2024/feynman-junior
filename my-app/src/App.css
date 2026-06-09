@@ -1,41 +1,171 @@
-/* .App {
-  text-align: center;
-/* App.css */
-
 .app-container {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background-color: #f0f0f0;
+  padding: 2rem;
+  background: #eef2ff;
+  color: #111827;
   font-family: Arial, sans-serif;
-  position: relative;
-  overflow: hidden;
 }
 
-.screen {
-  position: absolute;
-  top: 0;
-  left: 0;
+.stage-card {
   width: 100%;
-  height: 100%;
+  max-width: 560px;
+  padding: 2rem;
+  background: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+}
+
+.stage-card.wide {
+  max-width: 900px;
+}
+
+.stage-card.center {
+  text-align: center;
+}
+
+.stage-card h1,
+.stage-card h2,
+.stage-card p {
+  margin-top: 0;
+}
+
+.stage-header {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.button-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.field-label {
+  display: block;
+  margin: 1rem 0 0.4rem;
+  font-weight: 700;
+}
+
+.text-input,
+.chat-input,
+.answer-card textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 2px solid #d1d5db;
+  border-radius: 0.75rem;
+  padding: 0.8rem;
+  font-size: 1rem;
+}
+
+.chat-input,
+.answer-card textarea {
+  resize: vertical;
+}
+
+.text-input:focus,
+.chat-input:focus,
+.answer-card textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+
+.composer,
+.answer-list {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.5s ease-in-out;
-  opacity: 0;
-  transform: translateY(100%);
+  gap: 1rem;
 }
 
-.screen.active {
-  opacity: 1;
-  transform: translateY(0);
+.primary-button,
+.secondary-button,
+.microphone-button {
+  border: none;
+  border-radius: 0.75rem;
+  padding: 0.8rem 1rem;
+  font-weight: 700;
+  cursor: pointer;
 }
 
-.middle-screen {
-  text-align: center;
+.primary-button {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.primary-button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.secondary-button {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.microphone-button {
+  background: #3b82f6;
+  color: #ffffff;
+}
+
+.microphone-button.active {
+  background: #ef4444;
+}
+
+.speech-recorder {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 0.75rem;
+}
+
+.speech-status {
+  margin: 0;
+  color: #4b5563;
+}
+
+.speech-status.error {
+  color: #b91c1c;
+}
+
+.question-grid,
+.feedback-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.question-card,
+.answer-card,
+.feedback-section {
+  padding: 1rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+}
+
+.answer-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.eyebrow {
+  display: inline-block;
+  margin-bottom: 0.5rem;
+  color: #2563eb;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .loading-spinner {
@@ -51,11 +181,4 @@
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
-}
-
-
-.textarea {
-  width: 500px;
-  height: 300px;
-  font-size: 20px;
 }
