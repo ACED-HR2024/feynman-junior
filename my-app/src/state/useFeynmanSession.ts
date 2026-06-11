@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ollamaService, OllamaServiceError } from '../services/ollamaService';
+import { ollamaClient, OllamaServiceError } from '../services/ollamaClient';
 import { getAudienceById } from '../services/prompts';
 import {
     AudienceId,
@@ -82,7 +82,7 @@ export const useFeynmanSession = () => {
         });
 
         try {
-            await ollamaService.primeAudience(audience);
+            await ollamaClient.primeAudience(audience);
             setSession((current) => ({
                 ...current,
                 stage: 'submitExplanation',
@@ -127,7 +127,7 @@ export const useFeynmanSession = () => {
         }));
 
         try {
-            const result = await ollamaService.generateQuestions(session.audience, topic, explanation);
+            const result = await ollamaClient.generateQuestions(session.audience, topic, explanation);
             setSession((current) => ({
                 ...current,
                 questions: result.questions,
@@ -155,7 +155,7 @@ export const useFeynmanSession = () => {
         }));
 
         try {
-            const result = await ollamaService.generateFeedback(session, answers);
+            const result = await ollamaClient.generateFeedback(session, answers);
             setSession((current) => ({
                 ...current,
                 feedback: result.feedback,

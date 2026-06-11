@@ -1,4 +1,5 @@
 import './App.css';
+import { useEffect, useState } from 'react';
 import AnswerStage from './components/workflow/AnswerStage';
 import AudienceStage from './components/workflow/AudienceStage';
 import ErrorState from './components/workflow/ErrorState';
@@ -6,6 +7,10 @@ import ExplanationStage from './components/workflow/ExplanationStage';
 import FeedbackStage from './components/workflow/FeedbackStage';
 import PrimingStage from './components/workflow/PrimingStage';
 import QuestionStage from './components/workflow/QuestionStage';
+import { OllamaConfig } from './config/ollama';
+import { desktopConfigClient } from './services/desktopConfigClient';
+import { ollamaClient } from './services/ollamaClient';
+import { OllamaHealthStatus } from './services/ollamaService';
 import { useFeynmanSession } from './state/useFeynmanSession';
 import { WorkflowStage } from './types/session';
 
@@ -57,6 +62,8 @@ const getStageInstruction = (stage: WorkflowStage): string => {
 };
 
 function App() {
+    const [ollamaConfig, setOllamaConfig] = useState<OllamaConfig | null>(null);
+    const [ollamaHealth, setOllamaHealth] = useState<OllamaHealthStatus | null>(null);
     const {
         session,
         selectAudience,
@@ -82,6 +89,30 @@ function App() {
         session.feedback,
     );
     const answeredCount = session.answers.filter((answer) => answer.answer.trim()).length;
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadDesktopContext = async () => {
+            const [config, health] = await Promise.all([
+                desktopConfigClient.getOllamaConfig(),
+                ollamaClient.checkHealth(),
+            ]);
+
+            if (!isMounted) {
+                return;
+            }
+
+            setOllamaConfig(config);
+            setOllamaHealth(health);
+        };
+
+        void loadDesktopContext();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     const handleReset = () => {
         if (
@@ -277,6 +308,14 @@ function App() {
                             <dd>
                                 {answeredCount} of {session.questions.length || 0}
                             </dd>
+                        </div>
+                        <div>
+                            <dt>Model</dt>
+                            <dd>{ollamaConfig?.model || 'Loading'}</dd>
+                        </div>
+                        <div>
+                            <dt>Ollama</dt>
+                            <dd>{ollamaHealth?.message || 'Checking local service'}</dd>
                         </div>
                     </dl>
                     <div className="helper-card">

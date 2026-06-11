@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import AudioAnswerRecorder from '../input/AudioAnswerRecorder';
 import { GeneratedQuestion, UserAnswer } from '../../types/session';
 
 interface AnswerStageProps {
@@ -31,6 +32,14 @@ const AnswerStage: React.FC<AnswerStageProps> = ({
         })));
     };
 
+    const updateAnswer = (questionId: string, answer: string) => {
+        setAnswers((current) => ({
+            ...current,
+            [questionId]: answer,
+        }));
+        onDraftChange?.(questionId, answer);
+    };
+
     return (
         <section className="stage-card wide">
             <div className="stage-header">
@@ -48,26 +57,27 @@ const AnswerStage: React.FC<AnswerStageProps> = ({
             </div>
 
             <form className="answer-list" onSubmit={handleSubmit}>
-                {questions.map((question, index) => (
-                    <label className="answer-card" key={question.id}>
-                        <span className="eyebrow">Question {index + 1}</span>
-                        <strong>{question.prompt}</strong>
-                        <textarea
-                            value={answers[question.id] || ''}
-                            onChange={(event) => {
-                                const nextAnswer = event.target.value;
+                {questions.map((question, index) => {
+                    const answerId = `answer-${question.id}`;
 
-                                setAnswers((current) => ({
-                                    ...current,
-                                    [question.id]: nextAnswer,
-                                }));
-                                onDraftChange?.(question.id, nextAnswer);
-                            }}
-                            placeholder="Type your answer, or leave blank to skip this question."
+                    return (
+                    <div className="answer-card" key={question.id}>
+                        <span className="eyebrow">Question {index + 1}</span>
+                        <label htmlFor={answerId}>
+                            <strong>{question.prompt}</strong>
+                        </label>
+                        <textarea
+                            id={answerId}
+                            value={answers[question.id] || ''}
+                            onChange={(event) => updateAnswer(question.id, event.target.value)}
+                            placeholder="Type your answer, record a verbal answer, or leave blank to skip this question."
                             rows={4}
                         />
-                    </label>
-                ))}
+                        <AudioAnswerRecorder
+                            onTranscriptReady={(transcript) => updateAnswer(question.id, transcript)}
+                        />
+                    </div>
+                );})}
 
                 <button type="submit" className="primary-button">
                     Get Feedback

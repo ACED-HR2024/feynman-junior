@@ -6,9 +6,10 @@ The app helps a learner explain a topic to an audience-specific AI persona,
 then uses a local Ollama model to respond with questions or feedback at the
 selected audience level.
 
-The current implementation is a React and TypeScript web app in
+The current implementation is a React, TypeScript, and Electron app in
 [`my-app`](my-app). It combines a structured learning session, Ollama-backed
-question and feedback generation, typed input, and browser speech recognition.
+question and feedback generation, typed input, and speech/transcription
+boundaries for desktop use.
 
 ## Main Scope
 
@@ -81,12 +82,14 @@ feynman-junior/
         session.ts
 ```
 
-### Frontend
+### Desktop App
 
-- Framework: React 18 with TypeScript.
-- Tooling: Create React App through `react-scripts`.
+- Framework: React with TypeScript in an Electron renderer.
+- Tooling: Vite and Electron Vite for renderer, main, and preload bundles.
 - Styling: CSS files colocated with app and component code.
 - Entry point: [`my-app/src/index.tsx`](my-app/src/index.tsx).
+- Electron main process: [`my-app/electron/main.ts`](my-app/electron/main.ts).
+- Electron preload bridge: [`my-app/electron/preload.ts`](my-app/electron/preload.ts).
 - App shell: [`my-app/src/App.tsx`](my-app/src/App.tsx).
 - Workflow controller: [`my-app/src/state/useFeynmanSession.ts`](my-app/src/state/useFeynmanSession.ts).
 - Domain types: [`my-app/src/types/session.ts`](my-app/src/types/session.ts).
@@ -94,7 +97,9 @@ feynman-junior/
 ### Ollama Integration
 
 [`my-app/src/services/ollamaService.ts`](my-app/src/services/ollamaService.ts)
-wraps LangChain's `ChatOllama` behind a typed service boundary.
+wraps LangChain's `ChatOllama` behind a typed service boundary. In Electron,
+the renderer calls this through the preload API and main-process IPC instead of
+using Node-capable dependencies directly.
 
 Current defaults:
 
@@ -181,11 +186,11 @@ REACT_APP_OLLAMA_CACHE=true
 
 Run these from [`my-app`](my-app):
 
-- `npm start`: starts the development server.
-- `npm test`: starts the Create React App test runner.
-- `npm run build`: creates a production build.
-- `npm run eject`: ejects Create React App configuration. This is one-way and
-  should be avoided unless the project intentionally moves away from CRA.
+- `npm start`: starts the Electron development app.
+- `npm run web`: starts only the Vite renderer for browser UI iteration.
+- `npm test`: runs the Vitest suite once.
+- `npm run build`: builds Electron main, preload, and renderer bundles.
+- `npm run package`: assembles a local packaged Electron app directory.
 
 ## Current Limitations
 
@@ -193,7 +198,7 @@ Run these from [`my-app`](my-app):
 - Speech recognition is browser-dependent and not fully cross-browser.
 - Structured JSON output depends on the local model following prompt
   instructions.
-- The app is still client-only; sessions are not persisted across reloads.
+- The app does not yet persist learning sessions across reloads.
 - Styling is intentionally simple and needs product polish.
 
 ## V2 Feature Ideas

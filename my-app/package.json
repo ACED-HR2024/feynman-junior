@@ -2,6 +2,7 @@
   "name": "my-app",
   "version": "0.1.0",
   "private": true,
+  "main": "out/main/index.js",
   "dependencies": {
     "@langchain/core": "^1.1.48",
     "@langchain/ollama": "^1.2.7",
@@ -16,22 +17,34 @@
     "@types/react-dom": "^19.2.3",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-scripts": "5.0.1",
     "react-speech-recognition": "^4.0.1",
     "typescript": "^6.0.3",
     "web-vitals": "^5.3.0"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "start": "electron-vite dev",
+    "dev": "electron-vite dev",
+    "web": "vite",
+    "build": "electron-vite build",
+    "build:web": "vite build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "package": "electron-builder --dir",
+    "dist": "electron-builder"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
+  "build": {
+    "appId": "com.feynmanjunior.app",
+    "productName": "Feynman Junior",
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "mac": {
+      "category": "public.app-category.education"
+    }
   },
   "browserslist": {
     "production": [
@@ -46,6 +59,16 @@
     ]
   },
   "devDependencies": {
-    "@babel/plugin-proposal-private-property-in-object": "^7.21.11"
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "@swc/core": "^1.15.41",
+    "@vitejs/plugin-react": "^5.2.0",
+    "concurrently": "^10.0.3",
+    "electron": "^42.4.0",
+    "electron-builder": "^26.15.2",
+    "electron-vite": "^5.0.0",
+    "jsdom": "^29.1.1",
+    "vite": "^7.3.5",
+    "vitest": "^4.1.8",
+    "wait-on": "^9.0.10"
   }
 }

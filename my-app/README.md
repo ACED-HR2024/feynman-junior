@@ -10,29 +10,29 @@ Run these commands from this directory.
 
 ### `npm start`
 
-Runs the app in development mode. Open
-[http://localhost:3000](http://localhost:3000) to view it in the browser.
+Runs the Electron app in development mode with Vite-powered renderer reloads.
 
-The page reloads when files change, and lint errors appear in the console.
+### `npm run web`
+
+Runs only the React renderer in a browser for quick UI iteration.
 
 ### `npm test`
 
-Launches the Create React App test runner in interactive watch mode.
+Runs the Vitest suite once.
 
-For a one-time test run:
+For watch mode:
 
 ```sh
-npm test -- --watchAll=false
+npm run test:watch
 ```
 
 ### `npm run build`
 
-Builds the app for production to the `build` folder.
+Builds the Electron main, preload, and renderer bundles into `out`.
 
-### `npm run eject`
+### `npm run package`
 
-This is a one-way operation. Avoid ejecting unless the project intentionally
-moves away from Create React App.
+Assembles a local packaged Electron app directory in `release`.
 
 ## Local Ollama Requirement
 

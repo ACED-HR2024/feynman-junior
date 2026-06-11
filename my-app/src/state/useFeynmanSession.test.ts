@@ -1,12 +1,13 @@
 import { act, renderHook } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useFeynmanSession } from './useFeynmanSession';
-import { ollamaService } from '../services/ollamaService';
+import { ollamaClient } from '../services/ollamaClient';
 
-jest.mock('../services/ollamaService', () => ({
-    ollamaService: {
-        primeAudience: jest.fn(),
-        generateQuestions: jest.fn(),
-        generateFeedback: jest.fn(),
+vi.mock('../services/ollamaClient', () => ({
+    ollamaClient: {
+        primeAudience: vi.fn(),
+        generateQuestions: vi.fn(),
+        generateFeedback: vi.fn(),
     },
     OllamaServiceError: class OllamaServiceError extends Error {
         code: string;
@@ -18,11 +19,11 @@ jest.mock('../services/ollamaService', () => ({
     },
 }));
 
-const mockedOllamaService = ollamaService as jest.Mocked<typeof ollamaService>;
+const mockedOllamaService = vi.mocked(ollamaClient);
 
 describe('useFeynmanSession', () => {
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     it('selects an audience and advances to explanation after priming', async () => {

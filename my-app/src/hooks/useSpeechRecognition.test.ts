@@ -1,4 +1,5 @@
 import { act, renderHook } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useSpeechRecognition } from './useSpeechRecognition';
 
 class MockSpeechRecognition {
@@ -10,8 +11,8 @@ class MockSpeechRecognition {
     onresult: ((event: SpeechRecognitionEvent) => void) | null = null;
     onerror: ((event: SpeechRecognitionErrorEvent) => void) | null = null;
     onend: (() => void) | null = null;
-    start = jest.fn();
-    stop = jest.fn(() => {
+    start = vi.fn();
+    stop = vi.fn(() => {
         this.onend?.();
     });
 
