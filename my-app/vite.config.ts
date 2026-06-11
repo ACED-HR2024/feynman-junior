@@ -12,8 +12,6 @@ export default defineConfig(({ mode }) => {
             'process.env.REACT_APP_OLLAMA_TEMPERATURE': JSON.stringify(env.REACT_APP_OLLAMA_TEMPERATURE),
             'process.env.REACT_APP_OLLAMA_CACHE': JSON.stringify(env.REACT_APP_OLLAMA_CACHE),
             'process.env.REACT_APP_OLLAMA_TIMEOUT_MS': JSON.stringify(env.REACT_APP_OLLAMA_TIMEOUT_MS),
-            'process.env.REACT_APP_TRANSCRIPTION_BASE_URL': JSON.stringify(env.REACT_APP_TRANSCRIPTION_BASE_URL),
-            'process.env.REACT_APP_TRANSCRIPTION_MODEL': JSON.stringify(env.REACT_APP_TRANSCRIPTION_MODEL),
         },
         test: {
             environment: 'jsdom',

@@ -55,7 +55,22 @@ export const createLogger = (scope: string): Logger => {
         }
 
         const prefix = `${new Date().toISOString()} ${level.toUpperCase()} [${scope}]`;
-        consoleFor(level)(prefix, message, ...details.map(normalizeDetail));
+        // Fold details into the message string so they survive Electron's
+        // console-message forwarding to the main-process terminal (which would
+        // otherwise show objects as "[object Object]").
+        const rendered = details.map((detail) => {
+            const normalized = normalizeDetail(detail);
+            if (typeof normalized === 'string') {
+                return normalized;
+            }
+            try {
+                return JSON.stringify(normalized);
+            } catch {
+                return String(normalized);
+            }
+        });
+
+        consoleFor(level)([prefix, message, ...rendered].join(' '));
     };
 
     return {

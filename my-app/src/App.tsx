@@ -163,10 +163,10 @@ function App() {
             : (setupStatus.ollama.reachable
                 ? `Model ${setupStatus.model.configured} missing`
                 : 'Ollama offline'));
-    const voiceTone = !setupStatus ? 'idle' : (setupStatus.transcription.reachable ? 'ok' : 'warn');
+    const voiceTone = !setupStatus ? 'idle' : (setupStatus.transcription.available ? 'ok' : 'warn');
     const voiceText = !setupStatus
         ? 'Checking voice...'
-        : (setupStatus.transcription.reachable ? 'Voice ready' : 'Voice offline');
+        : (setupStatus.transcription.available ? 'Voice · on-device' : 'Voice unavailable');
 
     return (
         <div className="app-shell">

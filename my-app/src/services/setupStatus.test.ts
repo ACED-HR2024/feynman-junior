@@ -9,11 +9,6 @@ const ollama = {
     timeoutMs: 120000,
 };
 
-const transcription = {
-    baseUrl: 'http://localhost:8000',
-    model: 'whisper-1',
-};
-
 describe('setupStatus', () => {
     afterEach(() => {
         vi.unstubAllGlobals();
@@ -30,37 +25,43 @@ describe('setupStatus', () => {
             return new Response('{}', { status: 200 });
         }));
 
-        const status = await composeSetupStatus(ollama, transcription);
+        const status = await composeSetupStatus(ollama);
 
         expect(status.ollama.reachable).toBe(true);
         expect(status.model).toEqual({ configured: 'phi4-mini', available: true });
-        expect(status.transcription.reachable).toBe(true);
         expect(isSetupReady(status)).toBe(true);
     });
 
+    it('reports voice transcription as on-device and always available', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+            new Response(JSON.stringify({ models: [{ name: 'phi4-mini:latest' }] }), { status: 200 }),
+        ));
+
+        const status = await composeSetupStatus(ollama);
+
+        expect(status.transcription).toEqual({
+            mode: 'on-device',
+            available: true,
+            message: expect.stringContaining('on-device'),
+        });
+    });
+
     it('is not ready when the configured model is missing', async () => {
-        vi.stubGlobal('fetch', vi.fn().mockImplementation(async (url: string) => {
-            if (url.includes('/api/tags')) {
-                return new Response(JSON.stringify({
-                    models: [{ name: 'llama3.2:3b' }],
-                }), { status: 200 });
-            }
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+            new Response(JSON.stringify({ models: [{ name: 'llama3.2:3b' }] }), { status: 200 }),
+        ));
 
-            throw new TypeError('fetch failed');
-        }));
-
-        const status = await composeSetupStatus(ollama, transcription);
+        const status = await composeSetupStatus(ollama);
 
         expect(status.ollama.reachable).toBe(true);
         expect(status.model.available).toBe(false);
-        expect(status.transcription.reachable).toBe(false);
         expect(isSetupReady(status)).toBe(false);
     });
 
     it('reports an unreachable Ollama service without throwing', async () => {
         vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('fetch failed')));
 
-        const status = await composeSetupStatus(ollama, transcription);
+        const status = await composeSetupStatus(ollama);
 
         expect(status.ollama.reachable).toBe(false);
         expect(status.ollama.models).toEqual([]);

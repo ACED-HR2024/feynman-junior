@@ -1,11 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { transcriptionClient } from '../../services/transcriptionClient';
 import { createLogger } from '../../services/logger';
 import { notify } from '../../services/toastBus';
+import {
+    createVoiceTranscriber,
+    isVoiceTranscriptionSupported,
+    VoiceTranscriberHandle,
+} from '../../services/voiceTranscriber';
 
 const logger = createLogger('voiceRecorder');
 
-type RecorderStatus = 'idle' | 'recording' | 'transcribing' | 'error';
+type RecorderStatus = 'idle' | 'loading' | 'recording' | 'error';
 
 interface VoiceRecorderProps {
     label: string;
@@ -24,20 +28,16 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     label,
     onTranscript,
     disabled = false,
-    idleHint = 'Recordings are transcribed locally and stay editable.',
+    idleHint = 'Speech is transcribed on-device and stays editable.',
 }) => {
     const [status, setStatus] = useState<RecorderStatus>('idle');
     const [error, setError] = useState<string | null>(null);
+    const [interim, setInterim] = useState('');
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
-    const recorderRef = useRef<MediaRecorder | null>(null);
-    const chunksRef = useRef<Blob[]>([]);
-    const streamRef = useRef<MediaStream | null>(null);
+    const transcriberRef = useRef<VoiceTranscriberHandle | null>(null);
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    const isSupported = (
-        typeof navigator.mediaDevices?.getUserMedia === 'function' &&
-        typeof MediaRecorder !== 'undefined'
-    );
+    const isSupported = isVoiceTranscriptionSupported();
 
     const stopTimer = () => {
         if (timerRef.current) {
@@ -46,92 +46,75 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         }
     };
 
-    const stopStream = () => {
-        streamRef.current?.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
+    const startTimer = () => {
+        setElapsedSeconds(0);
+        timerRef.current = setInterval(() => {
+            setElapsedSeconds((current) => current + 1);
+        }, 1000);
     };
 
     useEffect(() => () => {
         stopTimer();
-        stopStream();
+        transcriberRef.current?.stop();
     }, []);
 
+    const handleError = (message: string) => {
+        stopTimer();
+        setInterim('');
+        setStatus('error');
+        setError(message);
+        notify({
+            title: 'Voice input failed',
+            message: `${message} You can still type below.`,
+            tone: 'error',
+        });
+    };
+
     const startRecording = async () => {
-        if (!isSupported || status === 'recording') {
+        if (!isSupported || status === 'recording' || status === 'loading') {
+            logger.info('startRecording: ignored', { isSupported, status });
             return;
         }
 
+        logger.info('startRecording: begin');
+        setError(null);
+        setInterim('');
+        setStatus('loading');
+
         try {
-            setError(null);
-            chunksRef.current = [];
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const recorder = new MediaRecorder(stream);
+            if (!transcriberRef.current) {
+                logger.info('startRecording: creating transcriber (first use)');
+                transcriberRef.current = await createVoiceTranscriber({
+                    onTranscribeStarted: () => {
+                        startTimer();
+                        setStatus('recording');
+                    },
+                    onTranscriptionUpdated: (text) => setInterim(text),
+                    onTranscriptionCommitted: (text) => {
+                        setInterim('');
+                        onTranscript(text);
+                    },
+                    onError: handleError,
+                });
+                logger.info('startRecording: transcriber created');
+            }
 
-            streamRef.current = stream;
-            recorderRef.current = recorder;
-            recorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    chunksRef.current.push(event.data);
-                }
-            };
-            recorder.onstop = async () => {
-                stopTimer();
-                stopStream();
-                setStatus('transcribing');
-
-                try {
-                    const audio = new Blob(chunksRef.current, {
-                        type: recorder.mimeType || 'audio/webm',
-                    });
-                    const transcript = await transcriptionClient.transcribeAudio(audio);
-
-                    if (transcript.trim()) {
-                        onTranscript(transcript.trim());
-                    }
-
-                    setStatus('idle');
-                } catch (transcriptionError) {
-                    const message = transcriptionError instanceof Error
-                        ? transcriptionError.message
-                        : 'Unable to transcribe this recording.';
-                    logger.error('transcription failed', transcriptionError);
-                    notify({
-                        title: 'Transcription failed',
-                        message: `${message} You can still type your answer below.`,
-                        tone: 'error',
-                    });
-                    setStatus('error');
-                    setError(message);
-                }
-            };
-
-            recorder.start();
-            setElapsedSeconds(0);
-            timerRef.current = setInterval(() => {
-                setElapsedSeconds((current) => current + 1);
-            }, 1000);
-            setStatus('recording');
+            logger.info('startRecording: calling transcriber.start()');
+            await transcriberRef.current.start();
+            logger.info('startRecording: transcriber.start() returned');
         } catch (recordingError) {
-            stopTimer();
-            stopStream();
-            const message = recordingError instanceof Error
+            logger.error('startRecording: failed', recordingError);
+            handleError(recordingError instanceof Error
                 ? recordingError.message
-                : 'Unable to start recording.';
-            logger.error('recording failed', recordingError);
-            notify({
-                title: 'Microphone unavailable',
-                message,
-                tone: 'error',
-            });
-            setStatus('error');
-            setError(message);
+                : 'Unable to start voice input.');
         }
     };
 
     const stopRecording = () => {
-        if (recorderRef.current?.state === 'recording') {
-            recorderRef.current.stop();
-        }
+        stopTimer();
+        setInterim('');
+        transcriberRef.current?.stop();
+        setStatus('idle');
     };
 
     const handleToggle = () => {
@@ -146,7 +129,8 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     if (!isSupported) {
         return (
             <p className="speech-status error" role="status">
-                Voice input is unavailable because this device cannot record audio.
+                Voice input is unavailable because this device cannot capture or
+                process audio locally.
             </p>
         );
     }
@@ -157,16 +141,18 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
                 type="button"
                 className={`record-button ${status === 'recording' ? 'recording' : ''}`}
                 onClick={handleToggle}
-                disabled={disabled || status === 'transcribing'}
+                disabled={disabled || status === 'loading'}
             >
                 <span className="record-dot" aria-hidden="true" />
                 {status === 'recording' && `Stop · ${formatDuration(elapsedSeconds)}`}
-                {status === 'transcribing' && 'Transcribing...'}
+                {status === 'loading' && 'Loading model...'}
                 {(status === 'idle' || status === 'error') && label}
             </button>
             <p className={`speech-status ${status === 'error' ? 'error' : ''}`} role="status">
-                {status === 'recording' && 'Listening. Stop when you finish your thought.'}
-                {status === 'transcribing' && 'Turning your recording into text...'}
+                {status === 'recording' && (interim
+                    ? `“${interim}”`
+                    : 'Listening. Stop when you finish your thought.')}
+                {status === 'loading' && 'Preparing the on-device speech model (first run downloads it once)...'}
                 {status === 'idle' && idleHint}
                 {status === 'error' && error}
             </p>

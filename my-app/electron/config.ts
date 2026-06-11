@@ -2,11 +2,9 @@ import { app } from 'electron';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { parseTimeoutMs, type OllamaConfig } from '../src/config/ollama';
-import type { TranscriptionConfig } from '../src/config/transcription';
 
 interface DesktopConfig {
     ollama?: Partial<OllamaConfig>;
-    transcription?: Partial<TranscriptionConfig>;
 }
 
 let cachedConfig: DesktopConfig | null = null;
@@ -73,29 +71,4 @@ export const setOllamaConfig = (nextConfig: Partial<OllamaConfig>): OllamaConfig
     });
 
     return getOllamaConfig();
-};
-
-export const getTranscriptionConfig = (): TranscriptionConfig => {
-    const stored = loadConfig().transcription || {};
-
-    return {
-        baseUrl: stored.baseUrl || process.env.REACT_APP_TRANSCRIPTION_BASE_URL || 'http://localhost:8000',
-        model: stored.model || process.env.REACT_APP_TRANSCRIPTION_MODEL || 'whisper-1',
-    };
-};
-
-export const setTranscriptionConfig = (
-    nextConfig: Partial<TranscriptionConfig>,
-): TranscriptionConfig => {
-    const current = loadConfig();
-
-    saveConfig({
-        ...current,
-        transcription: {
-            ...getTranscriptionConfig(),
-            ...nextConfig,
-        },
-    });
-
-    return getTranscriptionConfig();
 };

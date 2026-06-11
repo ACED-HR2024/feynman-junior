@@ -6,10 +6,11 @@ The app helps a learner explain a topic out loud to an audience-specific AI
 persona, then uses a local Ollama model to respond with questions or feedback
 at the selected audience level.
 
-The current implementation is a React, TypeScript, and Electron desktop app in
+npm sThe current implementation is a React, TypeScript, and Electron desktop app in
 [`my-app`](my-app). It combines a structured learning session, Ollama-backed
-question and feedback generation, voice-first input with local transcription,
-and a guided setup flow for the local AI services.
+question and feedback generation, voice-first input with on-device
+transcription (no second server), and a guided setup flow for the local AI
+services.
 
 ## Main Scope
 
@@ -40,12 +41,12 @@ flowchart LR
   answerStage --> feedbackStage[FeedbackStage]
 ```
 
-On launch the app checks the local AI services. If Ollama is unreachable or the
-configured model is missing, [`SetupStage`](my-app/src/components/workflow/SetupStage.tsx)
-opens first: it shows live service status, lists installed models, downloads
-the configured model with streamed progress, and configures the voice
-transcription server. The status bar at the bottom of the window reflects both
-services at all times, and Setup can be reopened from the title bar.
+On launch the app checks Ollama. If Ollama is unreachable or the configured
+model is missing, [`SetupStage`](my-app/src/components/workflow/SetupStage.tsx)
+opens first: it shows live service status, lists installed models, and downloads
+the configured model with streamed progress. Voice transcription needs no setup
+— it runs on-device. The status bar at the bottom of the window reflects Ollama
+and on-device voice at all times, and Setup can be reopened from the title bar.
 
 The app shell in [`my-app/src/App.tsx`](my-app/src/App.tsx) renders the active
 workflow stage from [`my-app/src/state/useFeynmanSession.ts`](my-app/src/state/useFeynmanSession.ts):
@@ -86,14 +87,13 @@ feynman-junior/
         workflow/
       config/
         ollama.ts
-        transcription.ts
       desktop/
         api.ts
       services/
         ollamaService.ts
         ollamaSetupService.ts
         setupStatus.ts
-        transcriptionService.ts
+        voiceTranscriber.ts
         prompts.ts
       state/
         useFeynmanSession.ts
@@ -150,25 +150,19 @@ which is parsed into the session types before reaching UI components.
 ### Voice Input And Transcription
 
 Voice is the primary input. The learner records explanations and answers with
-[`VoiceRecorder`](my-app/src/components/input/VoiceRecorder.tsx)
-(`MediaRecorder` capture), and the audio is transcribed by the Electron main
-process through
-[`my-app/src/services/transcriptionService.ts`](my-app/src/services/transcriptionService.ts).
-Transcripts land in editable text areas so recognition mistakes can be fixed
-before submission; typing remains available as a fallback.
+[`VoiceRecorder`](my-app/src/components/input/VoiceRecorder.tsx), and speech is
+transcribed **entirely on-device** in the renderer via
+[MoonshineJS](https://dev.moonshine.ai/), wrapped in
+[`my-app/src/services/voiceTranscriber.ts`](my-app/src/services/voiceTranscriber.ts).
+There is no transcription server. Transcripts stream into editable text areas
+(committed at each pause in speech) so recognition mistakes can be fixed before
+submission; typing remains available as a fallback.
 
-Transcription targets any local OpenAI-compatible speech-to-text server
-(`POST /v1/audio/transcriptions`), such as
-[Speaches](https://speaches.ai), faster-whisper-server, or LM Studio with a
-Whisper model. Defaults live in
-[`my-app/src/config/transcription.ts`](my-app/src/config/transcription.ts):
-
-- `REACT_APP_TRANSCRIPTION_BASE_URL` (default `http://localhost:8000`)
-- `REACT_APP_TRANSCRIPTION_MODEL` (default `whisper-1`)
-
-Both values can also be changed from the Setup screen. The transcription
-server is recommended but not required: without it the app stays usable by
-typing into the transcript fields.
+The Moonshine `tiny` model and its WebAssembly runtime load lazily on the first
+recording — the bundle is code-split, so it is fetched only when needed and
+then cached by the browser. After the first download, transcription works
+offline. Because everything runs in the renderer, no audio ever leaves the
+machine and no separate speech server has to be installed or kept running.
 
 ## Local Development
 
@@ -177,7 +171,8 @@ typing into the transcript fields.
 - Node.js and npm
 - Ollama installed and running locally
 - The `phi4-mini` model available in Ollama (the Setup screen can download it)
-- Optional: a local OpenAI-compatible transcription server for voice input
+- Voice transcription needs no setup — it runs on-device via MoonshineJS (the
+  speech model downloads once on first use and works offline thereafter)
 
 ### Setup
 
@@ -207,8 +202,8 @@ Start the desktop app:
 npm start
 ```
 
-The in-app Setup screen handles the rest: it verifies Ollama, downloads
-`phi4-mini` if needed, and points the app at your transcription server.
+The in-app Setup screen handles the rest: it verifies Ollama and downloads
+`phi4-mini` if needed. Voice transcription works out of the box, on-device.
 
 Optional local configuration:
 
@@ -217,8 +212,7 @@ REACT_APP_OLLAMA_BASE_URL=http://localhost:11434
 REACT_APP_OLLAMA_MODEL=phi4-mini
 REACT_APP_OLLAMA_TEMPERATURE=0.3
 REACT_APP_OLLAMA_CACHE=true
-REACT_APP_TRANSCRIPTION_BASE_URL=http://localhost:8000
-REACT_APP_TRANSCRIPTION_MODEL=whisper-1
+REACT_APP_OLLAMA_TIMEOUT_MS=120000
 ```
 
 ## Available Scripts
@@ -235,8 +229,9 @@ Run these from [`my-app`](my-app):
 
 - The Ollama model must be downloaded before practice can start (Setup makes
   this one click, but it is still a large download).
-- Voice transcription requires a separate local server; without one, input
-  falls back to typing.
+- On-device transcription downloads the Moonshine `tiny` model on first use, so
+  the very first recording needs a brief internet connection (it works offline
+  afterward). Typing into the transcript is always available as a fallback.
 - Structured JSON output depends on the local model following prompt
   instructions.
 - The app does not yet persist learning sessions across restarts.
@@ -264,14 +259,14 @@ Run these from [`my-app`](my-app):
 
 - Show live waveform or level feedback while recording.
 - Add per-take transcript history with undo.
-- Bundle or auto-start a local Whisper server so voice works out of the box.
-- Add language selection for transcription.
+- Self-host the bundled Moonshine model so the first recording works fully
+  offline (today the `tiny` model downloads once from Moonshine's CDN).
+- Offer larger Moonshine models or language selection for transcription.
 
 ### Ollama Reliability
 
 - Stream model responses so feedback appears progressively.
 - Recommend a starter model list in Setup with size and quality notes.
-- Health-check the configured transcription model, not just the server.
 
 ### Session Experience
 

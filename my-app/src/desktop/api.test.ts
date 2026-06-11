@@ -11,8 +11,6 @@ describe('desktop IPC contract', () => {
             'ollama:generate-questions',
             'ollama:generate-feedback',
             'config:get-ollama',
-            'config:get-transcription',
-            'transcription:transcribe-audio',
             'setup:get-status',
             'setup:pull-model',
             'setup:cancel-pull',

@@ -1,7 +1,5 @@
 import { OllamaConfig } from '../config/ollama';
-import { TranscriptionConfig } from '../config/transcription';
 import { InstalledModel, isModelInstalled, listInstalledModels } from './ollamaSetupService';
-import { checkTranscriptionHealth } from './transcriptionService';
 
 export interface SetupStatus {
     ollama: {
@@ -15,9 +13,8 @@ export interface SetupStatus {
         available: boolean;
     };
     transcription: {
-        baseUrl: string;
-        model: string;
-        reachable: boolean;
+        mode: 'on-device';
+        available: boolean;
         message: string;
     };
 }
@@ -28,7 +25,6 @@ export const isSetupReady = (status: SetupStatus): boolean => (
 
 export const composeSetupStatus = async (
     ollama: OllamaConfig,
-    transcription: TranscriptionConfig,
 ): Promise<SetupStatus> => {
     let models: InstalledModel[] = [];
     let reachable = true;
@@ -43,8 +39,6 @@ export const composeSetupStatus = async (
             : `Unable to reach Ollama at ${ollama.baseUrl}.`;
     }
 
-    const transcriptionHealth = await checkTranscriptionHealth(transcription.baseUrl);
-
     return {
         ollama: {
             baseUrl: ollama.baseUrl,
@@ -56,11 +50,12 @@ export const composeSetupStatus = async (
             configured: ollama.model,
             available: reachable && isModelInstalled(models, ollama.model),
         },
+        // Voice transcription runs entirely in the renderer via MoonshineJS —
+        // no separate server is required, so it is always available in-app.
         transcription: {
-            baseUrl: transcription.baseUrl,
-            model: transcription.model,
-            reachable: transcriptionHealth.reachable,
-            message: transcriptionHealth.message,
+            mode: 'on-device',
+            available: true,
+            message: 'Voice runs on-device (MoonshineJS) — no server required.',
         },
     };
 };

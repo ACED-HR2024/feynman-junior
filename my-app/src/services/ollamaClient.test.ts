@@ -23,11 +23,6 @@ const createDesktopApi = (overrides: {
     config: {
         getOllamaConfig: vi.fn(),
         setOllamaConfig: vi.fn(),
-        getTranscriptionConfig: vi.fn(),
-        setTranscriptionConfig: vi.fn(),
-    },
-    transcription: {
-        transcribeAudio: vi.fn(),
     },
     setup: {
         getStatus: vi.fn(),

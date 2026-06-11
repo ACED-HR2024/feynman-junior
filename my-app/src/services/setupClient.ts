@@ -1,5 +1,4 @@
 import { ollamaConfig } from '../config/ollama';
-import { transcriptionConfig } from '../config/transcription';
 import { ModelPullProgress, pullModel } from './ollamaSetupService';
 import { composeSetupStatus, SetupStatus } from './setupStatus';
 
@@ -11,7 +10,7 @@ export const setupClient = {
             return window.feynman.setup.getStatus();
         }
 
-        return composeSetupStatus(ollamaConfig, transcriptionConfig);
+        return composeSetupStatus(ollamaConfig);
     },
 
     pullModel: async (

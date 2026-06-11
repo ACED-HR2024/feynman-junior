@@ -5,11 +5,9 @@ import {
     IPC_CHANNELS,
     IpcResult,
     QuestionGenerationPayload,
-    TranscriptionPayload,
 } from '../src/desktop/api';
 import type { Audience } from '../src/types/session';
 import type { OllamaConfig } from '../src/config/ollama';
-import type { TranscriptionConfig } from '../src/config/transcription';
 import type { ModelPullProgress } from '../src/services/ollamaSetupService';
 
 const invoke = async <Result, Payload = void>(
@@ -45,15 +43,6 @@ const api: FeynmanDesktopApi = {
         getOllamaConfig: () => invoke(IPC_CHANNELS.getOllamaConfig),
         setOllamaConfig: (config: Partial<OllamaConfig>) => (
             invoke(IPC_CHANNELS.setOllamaConfig, config)
-        ),
-        getTranscriptionConfig: () => invoke(IPC_CHANNELS.getTranscriptionConfig),
-        setTranscriptionConfig: (config: Partial<TranscriptionConfig>) => (
-            invoke(IPC_CHANNELS.setTranscriptionConfig, config)
-        ),
-    },
-    transcription: {
-        transcribeAudio: (payload: TranscriptionPayload) => (
-            invoke(IPC_CHANNELS.transcribeAudio, payload)
         ),
     },
     setup: {

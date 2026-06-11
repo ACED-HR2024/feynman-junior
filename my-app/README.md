@@ -38,20 +38,21 @@ Assembles a local packaged Electron app directory in `release`.
 
 ## Local AI Services
 
-The app talks to two local services, both configurable from the in-app Setup
-screen (and persisted to the Electron `userData` directory):
+The app needs only **one** external service:
 
 1. **Ollama** (required) at `http://localhost:11434` with the `phi4-mini`
-   model by default. The Setup screen can download the model with progress.
+   model by default. The in-app Setup screen can download the model with
+   progress, and the choice is persisted to the Electron `userData` directory.
 
    ```sh
    ollama serve
    ```
 
-2. **Voice transcription** (recommended) — any OpenAI-compatible
-   speech-to-text server (`POST /v1/audio/transcriptions`) at
-   `http://localhost:8000` by default, such as Speaches,
-   faster-whisper-server, or LM Studio with a Whisper model.
+**Voice transcription runs entirely on-device** in the renderer via
+[MoonshineJS](https://dev.moonshine.ai/) — there is no second server to install
+or run. The `tiny` speech model downloads once from Moonshine's CDN on your
+first recording, then works offline. Typing into the transcript remains
+available as a fallback.
 
 Environment variable overrides:
 
@@ -60,11 +61,10 @@ REACT_APP_OLLAMA_BASE_URL=http://localhost:11434
 REACT_APP_OLLAMA_MODEL=phi4-mini
 REACT_APP_OLLAMA_TEMPERATURE=0.3
 REACT_APP_OLLAMA_CACHE=true
-REACT_APP_TRANSCRIPTION_BASE_URL=http://localhost:8000
-REACT_APP_TRANSCRIPTION_MODEL=whisper-1
+REACT_APP_OLLAMA_TIMEOUT_MS=120000
 ```
 
 Ollama configuration lives in [`src/config/ollama.ts`](src/config/ollama.ts),
-transcription configuration in
-[`src/config/transcription.ts`](src/config/transcription.ts), and the typed
-service boundaries in [`src/services`](src/services).
+on-device transcription in
+[`src/services/voiceTranscriber.ts`](src/services/voiceTranscriber.ts), and the
+typed service boundaries in [`src/services`](src/services).

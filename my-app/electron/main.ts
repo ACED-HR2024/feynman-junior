@@ -4,21 +4,14 @@ import { OllamaService } from '../src/services/ollamaService';
 import { OllamaServiceError } from '../src/services/ollamaErrors';
 import { pullModel } from '../src/services/ollamaSetupService';
 import { composeSetupStatus, SetupStatus } from '../src/services/setupStatus';
-import { transcribeAudio } from '../src/services/transcriptionService';
 import {
     FeedbackGenerationPayload,
     IPC_CHANNELS,
     IpcResult,
     QuestionGenerationPayload,
-    TranscriptionPayload,
 } from '../src/desktop/api';
 import { createLogger } from '../src/services/logger';
-import {
-    getOllamaConfig,
-    getTranscriptionConfig,
-    setOllamaConfig,
-    setTranscriptionConfig,
-} from './config';
+import { getOllamaConfig, setOllamaConfig } from './config';
 
 const logger = createLogger('main');
 
@@ -130,24 +123,9 @@ const registerIpcHandlers = (): void => {
         },
     );
 
-    handle<void, ReturnType<typeof getTranscriptionConfig>>(
-        IPC_CHANNELS.getTranscriptionConfig,
-        () => getTranscriptionConfig(),
-    );
-
-    handle<Parameters<typeof setTranscriptionConfig>[0], ReturnType<typeof setTranscriptionConfig>>(
-        IPC_CHANNELS.setTranscriptionConfig,
-        (config) => setTranscriptionConfig(config),
-    );
-
-    handle<TranscriptionPayload, string>(
-        IPC_CHANNELS.transcribeAudio,
-        ({ audio, mimeType }) => transcribeAudio(getTranscriptionConfig(), audio, mimeType),
-    );
-
     handle<void, SetupStatus>(
         IPC_CHANNELS.getSetupStatus,
-        () => composeSetupStatus(getOllamaConfig(), getTranscriptionConfig()),
+        () => composeSetupStatus(getOllamaConfig()),
     );
 
     // Registered without the wrapper because progress events stream back to
@@ -206,7 +184,11 @@ const createWindow = (): void => {
             preload: join(__dirname, '../preload/index.js'),
             contextIsolation: true,
             nodeIntegration: false,
-            sandbox: false,
+            // Must stay true: with the sandbox disabled, onnxruntime-web's WASM
+            // (on-device transcription) segfaults the renderer (SIGSEGV, exit
+            // code 11) during model load. The preload only uses contextBridge +
+            // ipcRenderer, which are fully supported in sandboxed preloads.
+            sandbox: true,
         },
     });
 
@@ -219,8 +201,53 @@ const createWindow = (): void => {
         return { action: 'deny' };
     });
 
+    // The on-device speech model runs heavy WebAssembly in the renderer. If that
+    // (or anything else) crashes the renderer, recover instead of leaving a dead
+    // white window, and log why so the failure is diagnosable.
+    let crashReloads = 0;
+    mainWindow.webContents.on('render-process-gone', (_event, details) => {
+        logger.error('renderer process gone', details);
+
+        if (details.reason === 'clean-exit' || crashReloads >= 3) {
+            return;
+        }
+
+        crashReloads += 1;
+        mainWindow?.webContents.openDevTools({ mode: 'detach' });
+        mainWindow?.reload();
+    });
+
+    mainWindow.webContents.on('unresponsive', () => {
+        logger.warn('renderer became unresponsive');
+    });
+
+    // Mirror every renderer console line into the main-process terminal so the
+    // logs are capturable even when DevTools is closed. Handles both the legacy
+    // positional signature and the Electron 36+ event-object form.
+    mainWindow.webContents.on('console-message', (...args: unknown[]) => {
+        const first = args[0] as
+            | { level?: number | string; message?: string; lineNumber?: number; sourceId?: string }
+            | undefined;
+
+        let level: number | string | undefined;
+        let message: string | undefined;
+        let sourceId: string | undefined;
+        let line: number | undefined;
+
+        if (first && typeof first === 'object' && 'message' in first) {
+            ({ level, message, sourceId, lineNumber: line } = first as {
+                level?: number | string; message?: string; lineNumber?: number; sourceId?: string;
+            });
+        } else {
+            [, level, message, line, sourceId] = args as [unknown, number, string, number, string];
+        }
+
+        logger.info('renderer console', { level, message, sourceId, line });
+    });
+
     if (process.env.ELECTRON_RENDERER_URL) {
         void mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL);
+        mainWindow.webContents.openDevTools({ mode: 'detach' });
     } else {
         void mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
     }

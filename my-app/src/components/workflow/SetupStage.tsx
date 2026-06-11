@@ -47,8 +47,6 @@ const SetupStage: React.FC<SetupStageProps> = ({ initialStatus = null, onComplet
     const [isSeeded, setIsSeeded] = useState(false);
     const [ollamaUrlDraft, setOllamaUrlDraft] = useState('');
     const [modelDraft, setModelDraft] = useState('');
-    const [voiceUrlDraft, setVoiceUrlDraft] = useState('');
-    const [voiceModelDraft, setVoiceModelDraft] = useState('');
     const [pull, setPull] = useState<PullState>(IDLE_PULL);
     const cancelRequested = useRef(false);
 
@@ -74,8 +72,6 @@ const SetupStage: React.FC<SetupStageProps> = ({ initialStatus = null, onComplet
         if (status && !isSeeded) {
             setOllamaUrlDraft(status.ollama.baseUrl);
             setModelDraft(status.model.configured);
-            setVoiceUrlDraft(status.transcription.baseUrl);
-            setVoiceModelDraft(status.transcription.model);
             setIsSeeded(true);
         }
     }, [status, isSeeded]);
@@ -84,14 +80,6 @@ const SetupStage: React.FC<SetupStageProps> = ({ initialStatus = null, onComplet
         await desktopConfigClient.setOllamaConfig({
             baseUrl: ollamaUrlDraft.trim() || status?.ollama.baseUrl,
             model: modelDraft.trim() || status?.model.configured,
-        });
-        await refresh();
-    };
-
-    const applyVoiceSettings = async () => {
-        await desktopConfigClient.setTranscriptionConfig({
-            baseUrl: voiceUrlDraft.trim() || status?.transcription.baseUrl,
-            model: voiceModelDraft.trim() || status?.transcription.model,
         });
         await refresh();
     };
@@ -147,7 +135,7 @@ const SetupStage: React.FC<SetupStageProps> = ({ initialStatus = null, onComplet
             <section className="stage-card center">
                 <div className="loading-spinner" aria-hidden="true" />
                 <h2>Checking your local AI setup...</h2>
-                <p>Looking for Ollama and a transcription server on this machine.</p>
+                <p>Looking for Ollama on this machine.</p>
             </section>
         );
     }
@@ -161,11 +149,11 @@ const SetupStage: React.FC<SetupStageProps> = ({ initialStatus = null, onComplet
         <section className="stage-card setup-card">
             <div className="stage-intro">
                 <span className="eyebrow">Setup · Local AI</span>
-                <h1>Connect your local models.</h1>
+                <h1>Connect your local model.</h1>
                 <p>
-                    Feynman Junior runs entirely on your machine: Ollama plays your
-                    audience, and a local transcription server turns your voice into
-                    text. Nothing you say or write leaves this computer.
+                    Feynman Junior runs on your machine: Ollama plays your audience,
+                    and your voice is transcribed on-device. Nothing you say or write
+                    leaves this computer.
                 </p>
             </div>
 
@@ -313,55 +301,23 @@ const SetupStage: React.FC<SetupStageProps> = ({ initialStatus = null, onComplet
                     <div>
                         <h2>Voice transcription</h2>
                         <p className="setup-hint">
-                            Recommended. Turns your spoken explanations and answers into
-                            text. Works with any OpenAI-compatible server, such as
-                            Speaches, faster-whisper-server, or LM Studio.
+                            Built in. Your spoken explanations and answers are
+                            transcribed on-device with MoonshineJS — no separate server
+                            to install or run.
                         </p>
                     </div>
                     <StatusPill
-                        ok={status.transcription.reachable}
-                        okLabel="Reachable"
-                        failLabel="Not found"
+                        ok={status.transcription.available}
+                        okLabel="On-device"
+                        failLabel="Unavailable"
                     />
                 </header>
 
-                {!status.transcription.reachable && (
-                    <p className="setup-hint">
-                        {status.transcription.message} You can still practice by typing;
-                        voice recording will show an error until a server is available.
-                    </p>
-                )}
-
-                <div className="setup-row">
-                    <div className="field-group">
-                        <label className="field-label" htmlFor="setup-voice-url">Server URL</label>
-                        <input
-                            id="setup-voice-url"
-                            className="text-input"
-                            value={voiceUrlDraft}
-                            onChange={(event) => setVoiceUrlDraft(event.target.value)}
-                            placeholder="http://localhost:8000"
-                        />
-                    </div>
-                    <div className="field-group">
-                        <label className="field-label" htmlFor="setup-voice-model">Model</label>
-                        <input
-                            id="setup-voice-model"
-                            className="text-input"
-                            value={voiceModelDraft}
-                            onChange={(event) => setVoiceModelDraft(event.target.value)}
-                            placeholder="whisper-1"
-                        />
-                    </div>
-                    <button
-                        type="button"
-                        className="secondary-button"
-                        onClick={() => void applyVoiceSettings()}
-                        disabled={isChecking}
-                    >
-                        Apply
-                    </button>
-                </div>
+                <p className="setup-hint">
+                    {status.transcription.message} The speech model downloads once on
+                    your first recording, then works offline. You can always type into
+                    the transcript instead.
+                </p>
             </section>
 
             <div className="setup-footer">
