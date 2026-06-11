@@ -10,6 +10,11 @@
 
 # production
 /build
+/out
+/release
+
+# generated design/tooling artifacts
+/.od-skills
 
 # misc
 .DS_Store
