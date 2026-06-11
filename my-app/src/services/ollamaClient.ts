@@ -6,9 +6,14 @@ import {
     SessionErrorCode,
     UserAnswer,
 } from '../types/session';
+import { createLogger } from './logger';
 import { ollamaService as browserOllamaService, OllamaServiceError } from './ollamaService';
 
+const logger = createLogger('ollamaClient');
+
 const toOllamaError = (error: unknown, fallbackMessage: string): OllamaServiceError => {
+    logger.error(fallbackMessage, error);
+
     if (error instanceof OllamaServiceError) {
         return error;
     }

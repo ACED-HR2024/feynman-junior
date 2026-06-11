@@ -1,7 +1,7 @@
 import { app } from 'electron';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
-import type { OllamaConfig } from '../src/config/ollama';
+import { parseTimeoutMs, type OllamaConfig } from '../src/config/ollama';
 import type { TranscriptionConfig } from '../src/config/transcription';
 
 interface DesktopConfig {
@@ -56,6 +56,7 @@ export const getOllamaConfig = (): OllamaConfig => {
         model: stored.model || process.env.REACT_APP_OLLAMA_MODEL || 'phi4-mini',
         temperature: parseTemperature(stored.temperature ?? process.env.REACT_APP_OLLAMA_TEMPERATURE),
         cache: stored.cache ?? process.env.REACT_APP_OLLAMA_CACHE !== 'false',
+        timeoutMs: parseTimeoutMs(stored.timeoutMs ?? process.env.REACT_APP_OLLAMA_TIMEOUT_MS),
     };
 };
 

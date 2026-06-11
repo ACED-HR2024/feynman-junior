@@ -47,6 +47,7 @@ export type SessionErrorCode =
     | 'ollama-unavailable'
     | 'model-missing'
     | 'invalid-response'
+    | 'timeout'
     | 'speech-unsupported'
     | 'speech-permission'
     | 'unknown';

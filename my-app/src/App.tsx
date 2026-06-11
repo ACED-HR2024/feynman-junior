@@ -5,6 +5,7 @@ import AudienceStage from './components/workflow/AudienceStage';
 import ErrorState from './components/workflow/ErrorState';
 import ExplanationStage from './components/workflow/ExplanationStage';
 import FeedbackStage from './components/workflow/FeedbackStage';
+import ToastHost from './components/feedback/ToastHost';
 import PrimingStage from './components/workflow/PrimingStage';
 import QuestionStage from './components/workflow/QuestionStage';
 import SetupStage from './components/workflow/SetupStage';
@@ -169,6 +170,7 @@ function App() {
 
     return (
         <div className="app-shell">
+            <ToastHost />
             <header className={`app-titlebar ${isMacDesktop ? 'mac-inset' : ''}`}>
                 <div className="titlebar-title">
                     <strong>Feynman Junior</strong>

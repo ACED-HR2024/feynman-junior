@@ -6,6 +6,7 @@ const ollama = {
     model: 'phi4-mini',
     temperature: 0.3,
     cache: true,
+    timeoutMs: 120000,
 };
 
 const transcription = {

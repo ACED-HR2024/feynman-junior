@@ -1,6 +1,7 @@
-import { HumanMessage, SystemMessage } from '@langchain/core/messages';
+import { BaseMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { ChatOllama } from '@langchain/ollama';
 import { ollamaConfig, OllamaConfig } from '../config/ollama';
+import { createLogger } from './logger';
 import {
     Audience,
     FeedbackGenerationResult,
@@ -30,6 +31,16 @@ export interface OllamaHealthStatus {
     message: string;
 }
 
+const logger = createLogger('ollamaService');
+
+// Health checks should fail fast; the model-bearing chat calls get the full
+// configured budget because a cold model load can take much longer.
+const HEALTH_TIMEOUT_MS = 8000;
+
+const isAbortError = (error: unknown): boolean => (
+    error instanceof Error && (error.name === 'AbortError' || error.name === 'TimeoutError')
+);
+
 export class OllamaService {
     private ollama: ChatOllama;
     private systemMessage: SystemMessage | null = null;
@@ -43,9 +54,53 @@ export class OllamaService {
         });
     }
 
+    /**
+     * Runs a chat request with an abort-backed timeout so a wedged Ollama
+     * surfaces a typed `timeout` error instead of hanging the UI forever.
+     */
+    private async invokeWithTimeout(
+        messages: BaseMessage[],
+        operation: string,
+    ): Promise<string> {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), this.config.timeoutMs);
+        const startedAt = Date.now();
+
+        logger.info(`${operation}: requesting`, {
+            model: this.config.model,
+            timeoutMs: this.config.timeoutMs,
+        });
+
+        try {
+            const response = await this.ollama.invoke(messages, { signal: controller.signal });
+            logger.info(`${operation}: completed`, { elapsedMs: Date.now() - startedAt });
+            return getResponseText(response.content);
+        } catch (error) {
+            if (isAbortError(error)) {
+                logger.error(`${operation}: timed out`, {
+                    elapsedMs: Date.now() - startedAt,
+                    timeoutMs: this.config.timeoutMs,
+                });
+                throw new OllamaServiceError(
+                    'timeout',
+                    `Ollama did not respond within ${Math.round(this.config.timeoutMs / 1000)}s. `
+                    + 'The model may still be loading, or the server may be stuck — check that '
+                    + '`ollama serve` is healthy and try again.',
+                );
+            }
+
+            logger.error(`${operation}: failed`, error);
+            throw error;
+        } finally {
+            clearTimeout(timer);
+        }
+    }
+
     async checkHealth(): Promise<OllamaHealthStatus> {
         try {
-            const response = await fetch(`${this.config.baseUrl}/api/tags`);
+            const response = await fetch(`${this.config.baseUrl}/api/tags`, {
+                signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS),
+            });
 
             if (!response.ok) {
                 return {
@@ -71,10 +126,15 @@ export class OllamaService {
                     : `Model "${this.config.model}" is not available in Ollama.`,
             };
         } catch (error) {
+            const timedOut = isAbortError(error);
+            logger.warn(timedOut ? 'checkHealth: timed out' : 'checkHealth: unreachable', error);
             return {
                 ok: false,
                 modelAvailable: false,
-                message: 'Unable to reach Ollama. Confirm that `ollama serve` is running.',
+                message: timedOut
+                    ? `Ollama did not respond within ${Math.round(HEALTH_TIMEOUT_MS / 1000)}s. `
+                        + 'Confirm that `ollama serve` is running and responsive.'
+                    : 'Unable to reach Ollama. Confirm that `ollama serve` is running.',
             };
         }
     }
@@ -91,9 +151,14 @@ export class OllamaService {
 
         try {
             this.systemMessage = new SystemMessage(buildPrimePrompt(audience));
-            await this.ollama.invoke([this.systemMessage]);
+            await this.invokeWithTimeout([this.systemMessage], `primeAudience(${audience.id})`);
         } catch (error) {
             this.systemMessage = null;
+
+            if (error instanceof OllamaServiceError) {
+                throw error;
+            }
+
             throw new OllamaServiceError('ollama-unavailable', 'Unable to prime Ollama for this audience.');
         }
     }
@@ -108,11 +173,11 @@ export class OllamaService {
         }
 
         try {
-            const response = await this.ollama.invoke([
+            const text = await this.invokeWithTimeout([
                 this.systemMessage,
                 new HumanMessage(buildQuestionPrompt(audience, topic, explanation)),
-            ]);
-            return parseQuestionGenerationResult(getResponseText(response.content));
+            ], 'generateQuestions');
+            return parseQuestionGenerationResult(text);
         } catch (error) {
             if (error instanceof OllamaServiceError) {
                 throw error;
@@ -132,11 +197,11 @@ export class OllamaService {
         }
 
         try {
-            const response = await this.ollama.invoke([
+            const text = await this.invokeWithTimeout([
                 this.systemMessage,
                 new HumanMessage(buildFeedbackPrompt(session, answers)),
-            ]);
-            return parseFeedbackGenerationResult(getResponseText(response.content));
+            ], 'generateFeedback');
+            return parseFeedbackGenerationResult(text);
         } catch (error) {
             if (error instanceof OllamaServiceError) {
                 throw error;

@@ -12,12 +12,15 @@ import {
     QuestionGenerationPayload,
     TranscriptionPayload,
 } from '../src/desktop/api';
+import { createLogger } from '../src/services/logger';
 import {
     getOllamaConfig,
     getTranscriptionConfig,
     setOllamaConfig,
     setTranscriptionConfig,
 } from './config';
+
+const logger = createLogger('main');
 
 let mainWindow: BrowserWindow | null = null;
 let ollamaService: OllamaService | null = null;
@@ -37,6 +40,8 @@ const getOllamaService = (): OllamaService => {
 };
 
 const serializeError = (error: unknown): IpcResult<never> => {
+    logger.error('IPC handler error', error);
+
     if (error instanceof OllamaServiceError) {
         return {
             ok: false,

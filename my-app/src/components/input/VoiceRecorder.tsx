@@ -1,5 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { transcriptionClient } from '../../services/transcriptionClient';
+import { createLogger } from '../../services/logger';
+import { notify } from '../../services/toastBus';
+
+const logger = createLogger('voiceRecorder');
 
 type RecorderStatus = 'idle' | 'recording' | 'transcribing' | 'error';
 
@@ -87,10 +91,17 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
 
                     setStatus('idle');
                 } catch (transcriptionError) {
-                    setStatus('error');
-                    setError(transcriptionError instanceof Error
+                    const message = transcriptionError instanceof Error
                         ? transcriptionError.message
-                        : 'Unable to transcribe this recording.');
+                        : 'Unable to transcribe this recording.';
+                    logger.error('transcription failed', transcriptionError);
+                    notify({
+                        title: 'Transcription failed',
+                        message: `${message} You can still type your answer below.`,
+                        tone: 'error',
+                    });
+                    setStatus('error');
+                    setError(message);
                 }
             };
 
@@ -103,10 +114,17 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         } catch (recordingError) {
             stopTimer();
             stopStream();
-            setStatus('error');
-            setError(recordingError instanceof Error
+            const message = recordingError instanceof Error
                 ? recordingError.message
-                : 'Unable to start recording.');
+                : 'Unable to start recording.';
+            logger.error('recording failed', recordingError);
+            notify({
+                title: 'Microphone unavailable',
+                message,
+                tone: 'error',
+            });
+            setStatus('error');
+            setError(message);
         }
     };
 

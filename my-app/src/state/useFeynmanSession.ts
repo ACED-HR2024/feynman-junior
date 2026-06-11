@@ -1,5 +1,7 @@
 import { useCallback, useState } from 'react';
 import { ollamaClient, OllamaServiceError } from '../services/ollamaClient';
+import { createLogger } from '../services/logger';
+import { notify } from '../services/toastBus';
 import { getAudienceById } from '../services/prompts';
 import {
     AudienceId,
@@ -7,6 +9,20 @@ import {
     SessionError,
     UserAnswer,
 } from '../types/session';
+
+const logger = createLogger('session');
+
+/** Logs the failure and raises a UI toast, then returns the structured error. */
+const reportError = (context: string, error: unknown): SessionError => {
+    const sessionError = toSessionError(error);
+    logger.error(`${context} failed: ${sessionError.code}`, error);
+    notify({
+        title: sessionError.title,
+        message: sessionError.message,
+        tone: 'error',
+    });
+    return sessionError;
+};
 
 const initialSession: LearningSession = {
     audience: null,
@@ -44,6 +60,15 @@ const toSessionError = (error: unknown): SessionError => {
             return {
                 code: error.code,
                 title: 'Unexpected model response',
+                message: error.message,
+                recoverable: true,
+            };
+        }
+
+        if (error.code === 'timeout') {
+            return {
+                code: error.code,
+                title: 'Ollama timed out',
                 message: error.message,
                 recoverable: true,
             };
@@ -90,11 +115,12 @@ export const useFeynmanSession = () => {
                 error: null,
             }));
         } catch (error) {
+            const sessionError = reportError('primeAudience', error);
             setSession((current) => ({
                 ...current,
                 stage: 'error',
                 isLoading: false,
-                error: toSessionError(error),
+                error: sessionError,
             }));
         }
     }, []);
@@ -135,11 +161,12 @@ export const useFeynmanSession = () => {
                 isLoading: false,
             }));
         } catch (error) {
+            const sessionError = reportError('generateQuestions', error);
             setSession((current) => ({
                 ...current,
                 stage: 'error',
                 isLoading: false,
-                error: toSessionError(error),
+                error: sessionError,
             }));
         }
     }, [session.audience]);
@@ -163,11 +190,12 @@ export const useFeynmanSession = () => {
                 isLoading: false,
             }));
         } catch (error) {
+            const sessionError = reportError('generateFeedback', error);
             setSession((current) => ({
                 ...current,
                 stage: 'error',
                 isLoading: false,
-                error: toSessionError(error),
+                error: sessionError,
             }));
         }
     }, [session]);

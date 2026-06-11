@@ -23,6 +23,12 @@ const ErrorState: React.FC<ErrorStateProps> = ({ error, onRetry, onReset }) => (
                 {error?.code === 'model-missing' && (
                     <li>Pull the configured model, then retry this step.</li>
                 )}
+                {error?.code === 'timeout' && (
+                    <>
+                        <li>The model may still be loading — wait a moment and retry.</li>
+                        <li>Restart Ollama (`ollama serve`) if requests keep stalling.</li>
+                    </>
+                )}
                 {error?.code === 'invalid-response' && (
                     <li>Retry the request, or simplify the explanation and generate again.</li>
                 )}
