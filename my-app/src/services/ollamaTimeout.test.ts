@@ -65,12 +65,15 @@ describe('OllamaService timeout', () => {
         );
     });
 
-    it('wraps non-timeout invoke failures as invalid-response', async () => {
+    it('wraps a non-timeout invoke failure as ollama-unavailable', async () => {
         invokeMock.mockRejectedValue(new Error('boom'));
 
         const service = new OllamaService(config);
 
         await expect(service.generateQuestions(audience, 'Gravity', 'Things fall.'))
-            .rejects.toBeInstanceOf(OllamaServiceError);
+            .rejects.toMatchObject({
+                name: 'OllamaServiceError',
+                code: 'ollama-unavailable',
+            });
     });
 });

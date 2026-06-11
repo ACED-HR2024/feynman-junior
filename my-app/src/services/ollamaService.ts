@@ -41,6 +41,11 @@ const isAbortError = (error: unknown): boolean => (
     error instanceof Error && (error.name === 'AbortError' || error.name === 'TimeoutError')
 );
 
+// Keep parse-failure logs readable without dropping the part that matters.
+const truncate = (text: string, max = 2000): string => (
+    text.length > max ? `${text.slice(0, max)}… [${text.length - max} more chars]` : text
+);
+
 export class OllamaService {
     private ollama: ChatOllama;
     private systemMessage: SystemMessage | null = null;
@@ -51,6 +56,10 @@ export class OllamaService {
             model: config.model,
             temperature: config.temperature,
             cache: config.cache,
+            // Constrain output with Ollama's JSON grammar so small models can't
+            // wrap the payload in prose, trailing commas, or markdown fences.
+            // The prime call ignores its output, so forcing JSON there is safe.
+            format: 'json',
         });
     }
 
@@ -90,7 +99,15 @@ export class OllamaService {
             }
 
             logger.error(`${operation}: failed`, error);
-            throw error;
+
+            if (error instanceof OllamaServiceError) {
+                throw error;
+            }
+
+            throw new OllamaServiceError(
+                'ollama-unavailable',
+                'The Ollama request failed. Confirm the server is running and the model is loaded.',
+            );
         } finally {
             clearTimeout(timer);
         }
@@ -172,13 +189,19 @@ export class OllamaService {
             this.systemMessage = new SystemMessage(buildPrimePrompt(audience));
         }
 
+        const text = await this.invokeWithTimeout([
+            this.systemMessage,
+            new HumanMessage(buildQuestionPrompt(audience, topic, explanation)),
+        ], 'generateQuestions');
+
         try {
-            const text = await this.invokeWithTimeout([
-                this.systemMessage,
-                new HumanMessage(buildQuestionPrompt(audience, topic, explanation)),
-            ], 'generateQuestions');
             return parseQuestionGenerationResult(text);
         } catch (error) {
+            logger.error('generateQuestions: could not parse model output', {
+                error,
+                rawResponse: truncate(text),
+            });
+
             if (error instanceof OllamaServiceError) {
                 throw error;
             }
@@ -196,13 +219,19 @@ export class OllamaService {
             this.systemMessage = new SystemMessage(buildPrimePrompt(session.audience));
         }
 
+        const text = await this.invokeWithTimeout([
+            this.systemMessage,
+            new HumanMessage(buildFeedbackPrompt(session, answers)),
+        ], 'generateFeedback');
+
         try {
-            const text = await this.invokeWithTimeout([
-                this.systemMessage,
-                new HumanMessage(buildFeedbackPrompt(session, answers)),
-            ], 'generateFeedback');
             return parseFeedbackGenerationResult(text);
         } catch (error) {
+            logger.error('generateFeedback: could not parse model output', {
+                error,
+                rawResponse: truncate(text),
+            });
+
             if (error instanceof OllamaServiceError) {
                 throw error;
             }

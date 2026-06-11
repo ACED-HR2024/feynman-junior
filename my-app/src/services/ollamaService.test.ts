@@ -47,4 +47,17 @@ describe('ollamaService parsers', () => {
     it('throws a typed error for malformed question output', () => {
         expect(() => parseQuestionGenerationResult('not json')).toThrow(OllamaServiceError);
     });
+
+    it('tolerates trailing commas in model JSON', () => {
+        const result = parseQuestionGenerationResult(`{
+            "questions": [
+                { "prompt": "What does this mean?", },
+            ],
+            "nextSteps": ["Answer each question.",],
+        }`);
+
+        expect(result.questions).toHaveLength(1);
+        expect(result.questions[0].prompt).toBe('What does this mean?');
+        expect(result.nextSteps).toEqual(['Answer each question.']);
+    });
 });

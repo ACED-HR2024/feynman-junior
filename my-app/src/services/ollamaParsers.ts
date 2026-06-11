@@ -17,10 +17,18 @@ const parseJsonObject = (raw: string): unknown => {
         throw new OllamaServiceError('invalid-response', 'Ollama did not return a JSON object.');
     }
 
+    const candidate = jsonText.slice(start, end + 1);
+
     try {
-        return JSON.parse(jsonText.slice(start, end + 1));
-    } catch (error) {
-        throw new OllamaServiceError('invalid-response', 'Ollama returned malformed JSON.');
+        return JSON.parse(candidate);
+    } catch {
+        // Small models often emit trailing commas before } or ]; retry once
+        // with those removed before giving up.
+        try {
+            return JSON.parse(candidate.replace(/,(\s*[}\]])/g, '$1'));
+        } catch {
+            throw new OllamaServiceError('invalid-response', 'Ollama returned malformed JSON.');
+        }
     }
 };
 
