@@ -10,6 +10,33 @@ const audience: Audience = {
     promptGuidance: 'Use plain language.',
 };
 
+const createDesktopApi = (overrides: {
+    ollama?: Partial<FeynmanDesktopApi['ollama']>;
+} = {}): FeynmanDesktopApi => ({
+    ollama: {
+        checkHealth: vi.fn(),
+        primeAudience: vi.fn(),
+        generateQuestions: vi.fn(),
+        generateFeedback: vi.fn(),
+        ...overrides.ollama,
+    },
+    config: {
+        getOllamaConfig: vi.fn(),
+        setOllamaConfig: vi.fn(),
+        getTranscriptionConfig: vi.fn(),
+        setTranscriptionConfig: vi.fn(),
+    },
+    transcription: {
+        transcribeAudio: vi.fn(),
+    },
+    setup: {
+        getStatus: vi.fn(),
+        pullModel: vi.fn(),
+        cancelModelPull: vi.fn(),
+        onModelPullProgress: vi.fn(),
+    },
+});
+
 const setDesktopApi = (api: FeynmanDesktopApi | undefined) => {
     Object.defineProperty(window, 'feynman', {
         configurable: true,
@@ -30,21 +57,7 @@ describe('ollamaClient', () => {
             nextSteps: [],
         });
 
-        setDesktopApi({
-            ollama: {
-                checkHealth: vi.fn(),
-                primeAudience: vi.fn(),
-                generateQuestions,
-                generateFeedback: vi.fn(),
-            },
-            config: {
-                getOllamaConfig: vi.fn(),
-                setOllamaConfig: vi.fn(),
-            },
-            transcription: {
-                transcribeAudio: vi.fn(),
-            },
-        });
+        setDesktopApi(createDesktopApi({ ollama: { generateQuestions } }));
 
         const result = await ollamaClient.generateQuestions(
             audience,
@@ -61,24 +74,14 @@ describe('ollamaClient', () => {
     });
 
     it('preserves typed Ollama error codes from the desktop bridge', async () => {
-        setDesktopApi({
+        setDesktopApi(createDesktopApi({
             ollama: {
-                checkHealth: vi.fn(),
                 primeAudience: vi.fn().mockRejectedValue(Object.assign(
                     new Error('Missing model'),
                     { code: 'model-missing' },
                 )),
-                generateQuestions: vi.fn(),
-                generateFeedback: vi.fn(),
             },
-            config: {
-                getOllamaConfig: vi.fn(),
-                setOllamaConfig: vi.fn(),
-            },
-            transcription: {
-                transcribeAudio: vi.fn(),
-            },
-        });
+        }));
 
         await expect(ollamaClient.primeAudience(audience)).rejects.toMatchObject({
             code: 'model-missing',

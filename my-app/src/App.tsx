@@ -7,10 +7,9 @@ import ExplanationStage from './components/workflow/ExplanationStage';
 import FeedbackStage from './components/workflow/FeedbackStage';
 import PrimingStage from './components/workflow/PrimingStage';
 import QuestionStage from './components/workflow/QuestionStage';
-import { OllamaConfig } from './config/ollama';
-import { desktopConfigClient } from './services/desktopConfigClient';
-import { ollamaClient } from './services/ollamaClient';
-import { OllamaHealthStatus } from './services/ollamaService';
+import SetupStage from './components/workflow/SetupStage';
+import { setupClient } from './services/setupClient';
+import { isSetupReady, SetupStatus } from './services/setupStatus';
 import { useFeynmanSession } from './state/useFeynmanSession';
 import { WorkflowStage } from './types/session';
 
@@ -41,15 +40,15 @@ const getStageInstruction = (stage: WorkflowStage): string => {
         case 'selectAudience':
             return 'Choose who you are teaching. Start Practice prepares that audience persona.';
         case 'primePersona':
-            return 'Preparing the audience persona before you write.';
+            return 'Preparing the audience persona before you explain.';
         case 'submitExplanation':
-            return 'Write or dictate your explanation. Generate Questions asks the audience to challenge it.';
+            return 'Record your spoken explanation. Generate Questions asks the audience to challenge it.';
         case 'generateQuestions':
             return 'Generating questions that test whether the explanation is clear.';
         case 'reviewQuestions':
             return 'Review the generated questions, then answer or revise your explanation.';
         case 'answerQuestions':
-            return 'Answer each question. Get Feedback reviews the learning session.';
+            return 'Record an answer to each question. Get Feedback reviews the learning session.';
         case 'generateFeedback':
             return 'Reviewing your answers and preparing feedback.';
         case 'reviewFeedback':
@@ -62,8 +61,8 @@ const getStageInstruction = (stage: WorkflowStage): string => {
 };
 
 function App() {
-    const [ollamaConfig, setOllamaConfig] = useState<OllamaConfig | null>(null);
-    const [ollamaHealth, setOllamaHealth] = useState<OllamaHealthStatus | null>(null);
+    const [setupStatus, setSetupStatus] = useState<SetupStatus | null>(null);
+    const [isSetupOpen, setIsSetupOpen] = useState(false);
     const {
         session,
         selectAudience,
@@ -93,26 +92,31 @@ function App() {
     useEffect(() => {
         let isMounted = true;
 
-        const loadDesktopContext = async () => {
-            const [config, health] = await Promise.all([
-                desktopConfigClient.getOllamaConfig(),
-                ollamaClient.checkHealth(),
-            ]);
+        const loadSetupStatus = async () => {
+            const status = await setupClient.getStatus();
 
             if (!isMounted) {
                 return;
             }
 
-            setOllamaConfig(config);
-            setOllamaHealth(health);
+            setSetupStatus(status);
+
+            if (!isSetupReady(status)) {
+                setIsSetupOpen(true);
+            }
         };
 
-        void loadDesktopContext();
+        void loadSetupStatus();
 
         return () => {
             isMounted = false;
         };
     }, []);
+
+    const handleSetupComplete = (status: SetupStatus) => {
+        setSetupStatus(status);
+        setIsSetupOpen(false);
+    };
 
     const handleReset = () => {
         if (
@@ -146,86 +150,93 @@ function App() {
         }
     };
 
-    const renderBackAction = () => {
-        if (session.stage === 'submitExplanation') {
-            return (
-                <button type="button" className="secondary-button" onClick={changeAudience}>
-                    Back to Audience
-                </button>
-            );
-        }
+    const isMacDesktop = Boolean(window.feynman) && navigator.userAgent.includes('Mac');
 
-        if (session.stage === 'reviewQuestions') {
-            return (
-                <button type="button" className="secondary-button" onClick={reviseExplanation}>
-                    Back to Explanation
-                </button>
-            );
-        }
-
-        if (session.stage === 'answerQuestions') {
-            return (
-                <button type="button" className="secondary-button" onClick={reviewQuestions}>
-                    Back to Questions
-                </button>
-            );
-        }
-
-        return null;
-    };
+    const ollamaTone = !setupStatus
+        ? 'idle'
+        : (isSetupReady(setupStatus) ? 'ok' : (setupStatus.ollama.reachable ? 'warn' : 'err'));
+    const ollamaText = !setupStatus
+        ? 'Checking Ollama...'
+        : (isSetupReady(setupStatus)
+            ? `Ollama · ${setupStatus.model.configured}`
+            : (setupStatus.ollama.reachable
+                ? `Model ${setupStatus.model.configured} missing`
+                : 'Ollama offline'));
+    const voiceTone = !setupStatus ? 'idle' : (setupStatus.transcription.reachable ? 'ok' : 'warn');
+    const voiceText = !setupStatus
+        ? 'Checking voice...'
+        : (setupStatus.transcription.reachable ? 'Voice ready' : 'Voice offline');
 
     return (
-        <div className="app-container">
-            <header className="app-header">
-                <div>
-                    <span className="eyebrow">Guided learning session</span>
-                    <h1>Feynman Junior</h1>
-                    <p>
+        <div className="app-shell">
+            <header className={`app-titlebar ${isMacDesktop ? 'mac-inset' : ''}`}>
+                <div className="titlebar-title">
+                    <strong>Feynman Junior</strong>
+                    <span>
                         {session.audience
-                            ? `Teaching ${session.audience.label.toLowerCase()}${session.topic ? ` about ${session.topic}` : ''}.`
-                            : 'Choose an audience, explain a topic, answer questions, and improve.'}
-                    </p>
+                            ? `Teaching ${session.audience.label.toLowerCase()}${session.topic ? ` about ${session.topic}` : ''}`
+                            : 'Guided teaching practice'}
+                    </span>
                 </div>
-                {hasSessionContent && (
-                    <button type="button" className="secondary-button" onClick={handleReset}>
-                        Start Over
+                <div className="titlebar-actions">
+                    {hasSessionContent && !isSetupOpen && (
+                        <button type="button" className="secondary-button subtle" onClick={handleReset}>
+                            Start Over
+                        </button>
+                    )}
+                    <button
+                        type="button"
+                        className="secondary-button"
+                        onClick={() => setIsSetupOpen(true)}
+                        disabled={isSetupOpen}
+                    >
+                        Setup
                     </button>
-                )}
+                </div>
             </header>
 
-            <nav className="progress-rail" aria-label="Practice progress">
-                {WORKFLOW_STEPS.map((step, index) => {
-                    const isCurrent = step.id === currentStep;
-                    const isComplete = index < currentStepIndex;
-                    const canNavigate = isComplete && step.id !== 'feedback';
+            {!isSetupOpen && (
+                <nav className="progress-rail" aria-label="Practice progress">
+                    {WORKFLOW_STEPS.map((step, index) => {
+                        const isCurrent = step.id === currentStep;
+                        const isComplete = index < currentStepIndex;
+                        const canNavigate = isComplete && step.id !== 'feedback';
 
-                    return (
-                        <button
-                            type="button"
-                            key={step.id}
-                            className={`progress-step ${isCurrent ? 'current' : ''} ${isComplete ? 'complete' : ''}`}
-                            disabled={!canNavigate || session.isLoading}
-                            onClick={() => handleStepClick(step.id)}
-                            aria-current={isCurrent ? 'step' : undefined}
-                        >
-                            <span className="progress-index">{index + 1}</span>
-                            <span>{step.label}</span>
-                        </button>
-                    );
-                })}
-            </nav>
+                        return (
+                            <button
+                                type="button"
+                                key={step.id}
+                                className={`progress-step ${isCurrent ? 'current' : ''} ${isComplete ? 'complete' : ''}`}
+                                disabled={!canNavigate || session.isLoading}
+                                onClick={() => handleStepClick(step.id)}
+                                aria-current={isCurrent ? 'step' : undefined}
+                            >
+                                <span className="progress-index">{index + 1}</span>
+                                <span>{step.label}</span>
+                            </button>
+                        );
+                    })}
+                </nav>
+            )}
 
-            <div className="workspace">
+            <div className={`workspace ${isSetupOpen ? 'single' : ''}`}>
                 <main className="main-stage">
-                    {session.stage === 'selectAudience' && (
+                    {isSetupOpen && (
+                        <SetupStage
+                            initialStatus={setupStatus}
+                            onComplete={handleSetupComplete}
+                        />
+                    )}
+
+                    {!isSetupOpen && session.stage === 'selectAudience' && (
                         <AudienceStage onSelectAudience={selectAudience} disabled={session.isLoading} />
                     )}
 
-                    {session.stage === 'primePersona' && (
+                    {!isSetupOpen && session.stage === 'primePersona' && (
                         <PrimingStage audience={session.audience} />
                     )}
 
-                    {session.stage === 'submitExplanation' && session.audience && (
+                    {!isSetupOpen && session.stage === 'submitExplanation' && session.audience && (
                         <ExplanationStage
                             audience={session.audience}
                             onSubmit={submitExplanation}
@@ -235,11 +246,11 @@ function App() {
                         />
                     )}
 
-                    {session.stage === 'generateQuestions' && (
+                    {!isSetupOpen && session.stage === 'generateQuestions' && (
                         <PrimingStage audience={session.audience} label="Generating audience questions..." />
                     )}
 
-                    {session.stage === 'reviewQuestions' && (
+                    {!isSetupOpen && session.stage === 'reviewQuestions' && (
                         <QuestionStage
                             questions={session.questions}
                             onContinue={continueToAnswers}
@@ -248,7 +259,7 @@ function App() {
                         />
                     )}
 
-                    {session.stage === 'answerQuestions' && (
+                    {!isSetupOpen && session.stage === 'answerQuestions' && (
                         <AnswerStage
                             questions={session.questions}
                             initialAnswers={session.answers}
@@ -258,11 +269,11 @@ function App() {
                         />
                     )}
 
-                    {session.stage === 'generateFeedback' && (
+                    {!isSetupOpen && session.stage === 'generateFeedback' && (
                         <PrimingStage audience={session.audience} label="Reviewing your answers..." />
                     )}
 
-                    {session.stage === 'reviewFeedback' && (
+                    {!isSetupOpen && session.stage === 'reviewFeedback' && (
                         <FeedbackStage
                             session={session}
                             onRevise={reviseExplanation}
@@ -271,7 +282,7 @@ function App() {
                         />
                     )}
 
-                    {session.stage === 'error' && (
+                    {!isSetupOpen && session.stage === 'error' && (
                         <ErrorState
                             error={session.error}
                             onRetry={retry}
@@ -280,64 +291,64 @@ function App() {
                     )}
                 </main>
 
-                <aside className="context-panel" aria-label="Session context">
-                    <div>
-                        <span className="panel-label">Current step</span>
-                        <strong>{WORKFLOW_STEPS[currentStepIndex]?.label || 'Practice'}</strong>
-                        <p>{getStageInstruction(session.stage)}</p>
-                    </div>
-                    <dl className="session-facts">
+                {!isSetupOpen && (
+                    <aside className="context-panel" aria-label="Session context">
                         <div>
-                            <dt>Audience</dt>
-                            <dd>{session.audience?.label || 'Not selected'}</dd>
+                            <span className="panel-label">Current step</span>
+                            <strong>{WORKFLOW_STEPS[currentStepIndex]?.label || 'Practice'}</strong>
+                            <p>{getStageInstruction(session.stage)}</p>
                         </div>
-                        <div>
-                            <dt>Topic</dt>
-                            <dd>{session.topic || 'Optional'}</dd>
+                        <dl className="session-facts">
+                            <div>
+                                <dt>Audience</dt>
+                                <dd>{session.audience?.label || 'Not selected'}</dd>
+                            </div>
+                            <div>
+                                <dt>Topic</dt>
+                                <dd>{session.topic || 'Optional'}</dd>
+                            </div>
+                            <div>
+                                <dt>Explanation</dt>
+                                <dd>{session.explanation ? 'Draft saved' : 'Not recorded'}</dd>
+                            </div>
+                            <div>
+                                <dt>Questions</dt>
+                                <dd>{session.questions.length}</dd>
+                            </div>
+                            <div>
+                                <dt>Answered</dt>
+                                <dd>
+                                    {answeredCount} of {session.questions.length || 0}
+                                </dd>
+                            </div>
+                        </dl>
+                        <div className="helper-card">
+                            <span className="panel-label">Practice tip</span>
+                            <p>
+                                Keep each pass focused: explain once, let the audience ask,
+                                answer honestly, then revise the weak point.
+                            </p>
                         </div>
-                        <div>
-                            <dt>Explanation</dt>
-                            <dd>{session.explanation ? 'Draft saved' : 'Not written'}</dd>
-                        </div>
-                        <div>
-                            <dt>Questions</dt>
-                            <dd>{session.questions.length}</dd>
-                        </div>
-                        <div>
-                            <dt>Answered</dt>
-                            <dd>
-                                {answeredCount} of {session.questions.length || 0}
-                            </dd>
-                        </div>
-                        <div>
-                            <dt>Model</dt>
-                            <dd>{ollamaConfig?.model || 'Loading'}</dd>
-                        </div>
-                        <div>
-                            <dt>Ollama</dt>
-                            <dd>{ollamaHealth?.message || 'Checking local service'}</dd>
-                        </div>
-                    </dl>
-                    <div className="helper-card">
-                        <span className="panel-label">Practice tip</span>
-                        <p>
-                            Keep each pass focused: explain once, let the audience ask,
-                            answer honestly, then revise the weak point.
-                        </p>
-                    </div>
-                </aside>
+                    </aside>
+                )}
             </div>
 
-            <footer className="app-footer">
-                <div className="button-row">
-                    {renderBackAction()}
-                    {hasSessionContent && (
-                        <button type="button" className="secondary-button subtle" onClick={handleReset}>
-                            Start Over
-                        </button>
-                    )}
+            <footer className="status-bar">
+                <div className="status-group">
+                    <span className="status-item">
+                        <span className={`status-dot ${ollamaTone}`} aria-hidden="true" />
+                        {ollamaText}
+                    </span>
+                    <span className="status-item">
+                        <span className={`status-dot ${voiceTone}`} aria-hidden="true" />
+                        {voiceText}
+                    </span>
                 </div>
-                <p>{getStageInstruction(session.stage)}</p>
+                <span className="status-step">
+                    {isSetupOpen
+                        ? 'Setup'
+                        : `Step ${currentStepIndex + 1} of ${WORKFLOW_STEPS.length} · ${WORKFLOW_STEPS[currentStepIndex]?.label || 'Practice'}`}
+                </span>
             </footer>
         </div>
     );

@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import SpeechRecorder from './SpeechRecorder';
+import VoiceRecorder from './VoiceRecorder';
 
-interface TextComposerProps {
+interface VoiceComposerProps {
     onSubmit: (topic: string, explanation: string) => void;
     disabled?: boolean;
     initialTopic?: string;
     initialExplanation?: string;
 }
 
-const TextComposer: React.FC<TextComposerProps> = ({
+const VoiceComposer: React.FC<VoiceComposerProps> = ({
     onSubmit,
     disabled = false,
     initialTopic = '',
@@ -51,27 +51,40 @@ const TextComposer: React.FC<TextComposerProps> = ({
                 />
             </div>
 
+            <div className="voice-panel">
+                <div>
+                    <span className="panel-label">Speak your explanation</span>
+                    <p className="speech-status">
+                        Teach it out loud the way you would to a real person.
+                        Each take is transcribed and appended below.
+                    </p>
+                </div>
+                <VoiceRecorder
+                    label="Record Explanation"
+                    onTranscript={appendTranscript}
+                    disabled={disabled}
+                />
+            </div>
+
             <div className="field-group">
                 <label className="field-label" htmlFor="explanation">
-                    Explanation <span>write as if you are teaching out loud</span>
+                    Transcript <span>edit anything the transcription got wrong</span>
                 </label>
                 <textarea
                     id="explanation"
                     className="chat-input"
                     value={explanation}
                     onChange={(event) => setExplanation(event.target.value)}
-                    placeholder="Explain the idea plainly. Use examples, cause and effect, and where people usually get confused."
-                    rows={9}
+                    placeholder="Record above and your spoken explanation lands here, ready to tidy up before the audience challenges it."
+                    rows={7}
                     disabled={disabled}
                 />
                 {!explanation.trim() && (
                     <p className="field-help">
-                        Feynman Junior needs an explanation before it can ask useful audience questions.
+                        Record an explanation before generating audience questions.
                     </p>
                 )}
             </div>
-
-            <SpeechRecorder onTranscriptReady={appendTranscript} />
 
             <button
                 type="submit"
@@ -84,4 +97,4 @@ const TextComposer: React.FC<TextComposerProps> = ({
     );
 };
 
-export default TextComposer;
+export default VoiceComposer;

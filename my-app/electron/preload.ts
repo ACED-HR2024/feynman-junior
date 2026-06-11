@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 import {
     FeynmanDesktopApi,
     FeedbackGenerationPayload,
@@ -9,6 +9,8 @@ import {
 } from '../src/desktop/api';
 import type { Audience } from '../src/types/session';
 import type { OllamaConfig } from '../src/config/ollama';
+import type { TranscriptionConfig } from '../src/config/transcription';
+import type { ModelPullProgress } from '../src/services/ollamaSetupService';
 
 const invoke = async <Result, Payload = void>(
     channel: string,
@@ -44,11 +46,33 @@ const api: FeynmanDesktopApi = {
         setOllamaConfig: (config: Partial<OllamaConfig>) => (
             invoke(IPC_CHANNELS.setOllamaConfig, config)
         ),
+        getTranscriptionConfig: () => invoke(IPC_CHANNELS.getTranscriptionConfig),
+        setTranscriptionConfig: (config: Partial<TranscriptionConfig>) => (
+            invoke(IPC_CHANNELS.setTranscriptionConfig, config)
+        ),
     },
     transcription: {
         transcribeAudio: (payload: TranscriptionPayload) => (
             invoke(IPC_CHANNELS.transcribeAudio, payload)
         ),
+    },
+    setup: {
+        getStatus: () => invoke(IPC_CHANNELS.getSetupStatus),
+        pullModel: (model: string) => (
+            invoke<void, string>(IPC_CHANNELS.pullModel, model)
+        ),
+        cancelModelPull: () => invoke(IPC_CHANNELS.cancelModelPull),
+        onModelPullProgress: (listener: (progress: ModelPullProgress) => void) => {
+            const subscription = (_event: IpcRendererEvent, progress: ModelPullProgress) => {
+                listener(progress);
+            };
+
+            ipcRenderer.on(IPC_CHANNELS.modelPullProgress, subscription);
+
+            return () => {
+                ipcRenderer.removeListener(IPC_CHANNELS.modelPullProgress, subscription);
+            };
+        },
     },
 };
 

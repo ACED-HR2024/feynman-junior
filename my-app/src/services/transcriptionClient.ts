@@ -1,17 +1,19 @@
-import { OllamaServiceError } from './ollamaErrors';
+import { transcriptionConfig } from '../config/transcription';
+import { transcribeAudio } from './transcriptionService';
 
 export const transcriptionClient = {
     transcribeAudio: async (audio: Blob): Promise<string> => {
-        if (!window.feynman) {
-            throw new OllamaServiceError(
-                'speech-unsupported',
-                'Desktop transcription is only available in the Electron app.',
-            );
+        if (window.feynman) {
+            return window.feynman.transcription.transcribeAudio({
+                audio: await audio.arrayBuffer(),
+                mimeType: audio.type,
+            });
         }
 
-        return window.feynman.transcription.transcribeAudio({
-            audio: await audio.arrayBuffer(),
-            mimeType: audio.type,
-        });
+        return transcribeAudio(
+            transcriptionConfig,
+            await audio.arrayBuffer(),
+            audio.type || undefined,
+        );
     },
 };

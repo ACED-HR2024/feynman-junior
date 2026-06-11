@@ -1,5 +1,5 @@
 import React from 'react';
-import TextComposer from '../input/TextComposer';
+import VoiceComposer from '../input/VoiceComposer';
 import { Audience } from '../../types/session';
 
 interface ExplanationStageProps {
@@ -21,17 +21,17 @@ const ExplanationStage: React.FC<ExplanationStageProps> = ({
         <div className="stage-header">
             <div>
                 <span className="eyebrow">Step 2 · Explain</span>
-                <h1>Teach {audience.label.toLowerCase()}.</h1>
+                <h1>Teach {audience.label.toLowerCase()} — out loud.</h1>
                 <p>
-                    {audience.description} Keep it simple, concrete, and editable before
-                    asking the model to challenge it.
+                    {audience.description} Record yourself explaining the idea, tidy
+                    the transcript, then let the audience challenge it.
                 </p>
             </div>
             <button type="button" className="secondary-button" onClick={onChangeAudience}>
                 Change Audience
             </button>
         </div>
-        <TextComposer
+        <VoiceComposer
             onSubmit={onSubmit}
             initialTopic={initialTopic}
             initialExplanation={initialExplanation}

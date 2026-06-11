@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import AudioAnswerRecorder from '../input/AudioAnswerRecorder';
+import VoiceRecorder from '../input/VoiceRecorder';
 import { GeneratedQuestion, UserAnswer } from '../../types/session';
 
 interface AnswerStageProps {
@@ -40,15 +40,21 @@ const AnswerStage: React.FC<AnswerStageProps> = ({
         onDraftChange?.(questionId, answer);
     };
 
+    const appendTranscript = (questionId: string, transcript: string) => {
+        const current = answers[questionId]?.trim() || '';
+        updateAnswer(questionId, current ? `${current} ${transcript}` : transcript);
+    };
+
     return (
         <section className="stage-card wide">
             <div className="stage-header">
                 <div>
                     <span className="eyebrow">Step 4 · Answers</span>
-                    <h1>Answer what the audience asked.</h1>
+                    <h1>Answer what the audience asked — out loud.</h1>
                     <p>
-                        Empty answers are allowed and will be treated as skipped. Drafts
-                        are preserved if you review the question list again.
+                        Record a spoken answer for each question, then fix anything the
+                        transcription missed. Empty answers are treated as skipped, and
+                        drafts survive going back to the question list.
                     </p>
                 </div>
                 <button type="button" className="secondary-button" onClick={onBack}>
@@ -61,23 +67,26 @@ const AnswerStage: React.FC<AnswerStageProps> = ({
                     const answerId = `answer-${question.id}`;
 
                     return (
-                    <div className="answer-card" key={question.id}>
-                        <span className="eyebrow">Question {index + 1}</span>
-                        <label htmlFor={answerId}>
-                            <strong>{question.prompt}</strong>
-                        </label>
-                        <textarea
-                            id={answerId}
-                            value={answers[question.id] || ''}
-                            onChange={(event) => updateAnswer(question.id, event.target.value)}
-                            placeholder="Type your answer, record a verbal answer, or leave blank to skip this question."
-                            rows={4}
-                        />
-                        <AudioAnswerRecorder
-                            onTranscriptReady={(transcript) => updateAnswer(question.id, transcript)}
-                        />
-                    </div>
-                );})}
+                        <div className="answer-card" key={question.id}>
+                            <span className="eyebrow">Question {index + 1}</span>
+                            <label htmlFor={answerId}>
+                                <strong>{question.prompt}</strong>
+                            </label>
+                            <VoiceRecorder
+                                label="Record Answer"
+                                idleHint="Speak your answer, then review the transcript below."
+                                onTranscript={(transcript) => appendTranscript(question.id, transcript)}
+                            />
+                            <textarea
+                                id={answerId}
+                                value={answers[question.id] || ''}
+                                onChange={(event) => updateAnswer(question.id, event.target.value)}
+                                placeholder="Your spoken answer appears here. Edit it, or leave blank to skip this question."
+                                rows={4}
+                            />
+                        </div>
+                    );
+                })}
 
                 <button type="submit" className="primary-button">
                     Get Feedback
